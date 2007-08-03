@@ -38,6 +38,9 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#ifdef WITH_FREEIPMI
+#include <ipmiconsole.h>
+#endif /* WITH_FREEIPMI */
 #include "common.h"
 #include "list.h"
 #include "log.h"
@@ -68,7 +71,10 @@ obj_t * create_obj(
         || type==CONMAN_OBJ_LOGFILE
         || type==CONMAN_OBJ_PROCESS
         || type==CONMAN_OBJ_SERIAL
-        || type==CONMAN_OBJ_TELNET);
+#ifdef WITH_FREEIPMI
+	|| type==CONMAN_OBJ_IPMI
+#endif /* WITH_FREEIPMI */
+	|| type==CONMAN_OBJ_TELNET);
 
     if (!(obj = malloc(sizeof(obj_t))))
         out_of_memory();
@@ -197,6 +203,19 @@ void destroy_obj(obj_t *obj)
         /*  Do not destroy obj->aux.telnet.logfile since it is only a ref.
          */
         break;
+#ifdef WITH_FREEIPMI
+    case CONMAN_OBJ_IPMI:
+	if (obj->aux.ipmi.hostname) {
+	    free(obj->aux.ipmi.hostname);
+	}
+	if (obj->aux.ipmi.ctx) {
+	    while (ipmiconsole_ctx_destroy(obj->aux.ipmi.ctx) < 0) {
+		printf("%s\n", ipmiconsole_ctx_strerror(ipmiconsole_ctx_errnum(obj->aux.ipmi.ctx)));
+		sleep(1);
+	    }
+	}
+	break;
+#endif /* WITH_FREEIPMI */
     default:
         log_err(0, "INTERNAL: Unrecognized object [%s] type=%d",
             obj->name, obj->type);
@@ -239,6 +258,12 @@ void reopen_obj(obj_t *obj)
     else if (is_telnet_obj(obj)) {
         open_telnet_obj(obj);
     }
+#ifdef WITH_FREEIPMI
+    else if (is_ipmi_obj(obj)) {
+	ipmi_setup();
+	open_ipmi_obj(obj);
+    }
+#endif /* WITH_FREEIPMI */
     else if (is_client_obj(obj)) {
         ; /* no-op */
     }

@@ -236,6 +236,35 @@ fi
 AC_MSG_CHECKING(whether to use TCP Wrappers)
 AC_MSG_RESULT(${tcp_wrappers=no})
 
+dnl Check for FreeIPMI libraries
+dnl
+AC_ARG_WITH(freeipmi,
+  AC_HELP_STRING([--with-freeipmi], [use FreeIPMI's libipmiconsole]),
+  [ case "$withval" in
+      yes) freeipmi=yes ;;
+      no)  freeipmi=no ;;
+      *)   AC_MSG_RESULT(doh!)
+           AC_MSG_ERROR([bad value "$withval" for --with-freeipmi]) ;;
+    esac
+  ]
+)
+if test "$freeipmi" != no; then
+  AC_CHECK_HEADER(ipmiconsole.h, ac_have_ipmiconsole_h=yes)
+  AC_CHECK_LIB(ipmiconsole, ipmiconsole_engine_init, ac_have_ipmiconsole=yes)
+  if test "$ac_have_ipmiconsole_h" = yes -a "$ac_have_ipmiconsole" = yes; then
+    AC_DEFINE_UNQUOTED(WITH_FREEIPMI, 1, [Define if using FreeIPMI's libipmiconsole.])
+    freeipmi=yes
+    SOBJS="server-ipmi.o $SOJBS"
+    SLIBS="-lipmiconsole $SLIBS"
+  else
+    freeipmi=no
+  fi
+fi
+AC_MSG_CHECKING(whether to use FreeIPMI's libipmiconsole)
+AC_MSG_RESULT(${freeipmi=no})
+AC_SUBST(SOBJS)
+AC_SUBST(SLIBS)
+
 
 dnl Check for ConMan daemon conf file.
 dnl Force a double shell-expansion of the CONF var.

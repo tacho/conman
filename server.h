@@ -34,6 +34,9 @@
 #include <sys/types.h>
 #include <termios.h>                    /* for struct termios, speed_t       */
 #include <time.h>                       /* for time_t                        */
+#ifdef WITH_FREEIPMI
+#include <ipmiconsole.h>                /* for IPMI SoL consoles             */
+#endif /* WITH_FREEIPMI */
 #include "common.h"
 #include "list.h"
 #include "tpoll.h"
@@ -57,12 +60,24 @@
 #define TELNET_MAX_TIMEOUT              1800
 #define TELNET_MIN_TIMEOUT              15
 
+#ifdef WITH_FREEIPMI
+#define IPMI_K_G_MAX                    20
+#define IPMI_USERNAME_MAX               16
+#define IPMI_PASSWORD_MAX               20
+#define IPMI_ENGINE_THREADS             5
+#define IPMI_STATUS_CHECK_TIMEOUT       5 /* seconds */
+#define IPMI_CONNECT_RETRY_TIMEOUT      30 /* seconds */
+#endif /* WITH_FREEIPMI */
+
 
 enum obj_type {                         /* type of auxiliary obj (3 bits)    */
     CONMAN_OBJ_CLIENT,
     CONMAN_OBJ_LOGFILE,
     CONMAN_OBJ_PROCESS,
     CONMAN_OBJ_SERIAL,
+#ifdef WITH_FREEIPMI
+    CONMAN_OBJ_IPMI,
+#endif /* WITH_FREEIPMI */
     CONMAN_OBJ_TELNET
 };
 
@@ -136,11 +151,39 @@ typedef struct telnet_obj {             /* TELNET AUX OBJ DATA:              */
     unsigned         enableKeepAlive:1; /*  true if using TCP keep-alive     */
 } telnet_obj_t;
 
+#ifdef WITH_FREEIPMI
+typedef struct ipmi_opt {               /* IPMI OBJ OPTIONS:                 */
+    char            *username;          /*  BMC user name for auth           */
+    char            *password;          /*  BMC password for auth            */
+    unsigned char   k_g[IPMI_K_G_MAX];            /*  BMC Key for 2-key auth (optional)*/
+} ipmiopt_t;
+
+typedef struct ipmiconsole_ctx ipmictx_t;
+
+typedef enum ipmi_connect_state {
+    CONMAN_IPMI_DOWN,
+    CONMAN_IPMI_PENDING,
+    CONMAN_IPMI_UP
+} ipmi_state_t;
+
+typedef struct ipmi_obj {               /* IPMI AUX OBJ DATA:                */
+    char            *hostname;          /*  remote bmc host name/ip          */
+    ipmiopt_t        iconf;             /*  conf to connect to bmc           */
+    ipmictx_t       *ctx;               /*  ipmi session ctx obj             */
+    struct base_obj *logfile;           /*  log obj ref for console          */
+    ipmi_state_t     state;             /*  connection state                 */
+    int              timer;             /*  timer id                         */
+} ipmi_obj_t;
+#endif /* WITH_FREEIPMI */
+
 typedef union aux_obj {
     client_obj_t     client;
     logfile_obj_t    logfile;
     process_obj_t    process;
     serial_obj_t     serial;
+#ifdef WITH_FREEIPMI
+    ipmi_obj_t       ipmi;
+#endif /* WITH_FREEIPMI */
     telnet_obj_t     telnet;
 } aux_obj_t;
 
@@ -183,6 +226,9 @@ typedef struct server_conf {
     char            *globalLogName;     /* global log name (must contain &)  */
     logopt_t         globalLogOpts;     /* global opts for logfile objects   */
     seropt_t         globalSerOpts;     /* global opts for serial objects    */
+#ifdef WITH_FREEIPMI
+    ipmiopt_t        globalIpmiOpts;    /* global opts for ipmi objects      */
+#endif /* WITH_FREEIPMI */
     unsigned         enableKeepAlive:1; /* true if using TCP keep-alive      */
     unsigned         enableLoopBack:1;  /* true if only listening on loopback*/
     unsigned         enableTCPWrap:1;   /* true if TCP-Wrappers is enabled   */
@@ -238,8 +284,15 @@ typedef struct client_args {
 #define is_process_obj(OBJ)  (OBJ->type == CONMAN_OBJ_PROCESS)
 #define is_serial_obj(OBJ)   (OBJ->type == CONMAN_OBJ_SERIAL)
 #define is_telnet_obj(OBJ)   (OBJ->type == CONMAN_OBJ_TELNET)
+#ifdef WITH_FREEIPMI
+#define is_ipmi_obj(OBJ)     (OBJ->type == CONMAN_OBJ_IPMI)
 #define is_console_obj(OBJ)  \
+    (is_process_obj(OBJ) || is_serial_obj(OBJ) || \
+     is_telnet_obj(OBJ) || is_ipmi_obj(OBJ))
+#else /* !WITH_FREEIPMI */
+#define is_console_obj(OBJ) \
     (is_process_obj(OBJ) || is_serial_obj(OBJ) || is_telnet_obj(OBJ))
+#endif /* WITH_FREEIPMI */
 
 
 /*  server-conf.c
@@ -346,5 +399,22 @@ int process_telnet_escapes(obj_t *telnet, void *src, int len);
 
 int send_telnet_cmd(obj_t *telnet, int cmd, int opt);
 
+#ifdef WITH_FREEIPMI
+/* server-ipmi.c
+ */
+
+void ipmi_setup(void);
+void ipmi_teardown(void);
+
+int parse_ipmi_opts(
+    ipmiopt_t *iopts, const char *str, char *errbuf, int errlen);
+
+obj_t * create_ipmi_obj(server_conf_t *conf, char *name,
+    ipmiopt_t *iconf, char *hostname, char *errbuf, int errlen);
+
+int open_ipmi_obj(obj_t *ipmi);
+
+int send_ipmi_break(obj_t *ipmi);
+#endif /* WITH_FREEIPMI */
 
 #endif /* !_SERVER_H */

@@ -114,6 +114,9 @@
 /* Define if using the debug malloc library. */
 #undef WITH_DMALLOC
 
+/* Define if using FreeIPMI's libipmiconsole. */
+#undef WITH_FREEIPMI
+
 /* Define if using Pthreads. */
 #undef WITH_PTHREADS
 

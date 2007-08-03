@@ -144,6 +144,9 @@ int main(int argc, char *argv[])
 
     open_objs(conf);
     mux_io(conf);
+#ifdef WITH_FREEIPMI
+    ipmi_teardown();
+#endif /* WITH_FREEIPMI */
     destroy_server_conf(conf);
 
     if (pgid > 0) {
@@ -665,6 +668,10 @@ static void mux_io(server_conf_t *conf)
             }
             if ((is_telnet_obj(obj)
                 && obj->aux.telnet.conState == CONMAN_TELCON_UP)
+#ifdef WITH_FREEIPMI
+	      ||(is_ipmi_obj(obj)
+		&& obj->aux.ipmi.state == CONMAN_IPMI_UP)
+#endif /* WITH_FREEIPMI */
               || is_serial_obj(obj)
               || is_process_obj(obj)
               || is_client_obj(obj)) {

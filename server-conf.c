@@ -60,6 +60,9 @@ enum server_conf_toks {
     SERVER_CONF_DEV,
     SERVER_CONF_EXECPATH,
     SERVER_CONF_GLOBAL,
+#ifdef WITH_FREEIPMI
+    SERVER_CONF_IPMIOPTS,
+#endif /* WITH_FREEIPMI */
     SERVER_CONF_KEEPALIVE,
     SERVER_CONF_LOG,
     SERVER_CONF_LOGDIR,
@@ -88,6 +91,9 @@ static char *server_conf_strs[] = {
     "DEV",
     "EXECPATH",
     "GLOBAL",
+#ifdef WITH_FREEIPMI
+    "IPMIOPTS",
+#endif /* WITH_FREEIPMI */
     "KEEPALIVE",
     "LOG",
     "LOGDIR",
@@ -164,6 +170,9 @@ typedef struct console_strs {
     char *log;
     char *lopts;
     char *sopts;
+#ifdef WITH_FREEIPMI
+    char *iopts;
+#endif /* WITH_FREEIPMI */
 } console_strs_t;
 
 
@@ -176,6 +185,9 @@ static int is_telnet_dev(const char *dev, char **host_ref, int *port_ref);
 static int is_serial_dev(const char *dev, const char *cwd, char **path_ref);
 static int is_process_dev(const char *dev, const char *cwd,
     const char *exec_path, char **path_ref);
+#ifdef WITH_FREEIPMI
+static int is_ipmi_dev(const char *dev, char **host_ref);
+#endif /* WITH_FREEIPMI */
 static int search_exec_path(const char *path, const char *src,
     char *dst, int dstlen);
 static void parse_global_directive(server_conf_t *conf, Lex l);
@@ -244,6 +256,11 @@ server_conf_t * create_server_conf(void)
     conf->globalSerOpts.databits = DEFAULT_SEROPT_DATABITS;
     conf->globalSerOpts.parity = DEFAULT_SEROPT_PARITY;
     conf->globalSerOpts.stopbits = DEFAULT_SEROPT_STOPBITS;
+#ifdef WITH_FREEIPMI
+    conf->globalIpmiOpts.username = NULL;
+    conf->globalIpmiOpts.password = NULL;
+    memset(conf->globalIpmiOpts.k_g, 0, IPMI_K_G_MAX);
+#endif /* WITH_FREEIPMI */
     conf->enableKeepAlive = 1;
     conf->enableLoopBack = 0;
     conf->enableTCPWrap = 0;
@@ -304,7 +321,10 @@ void destroy_server_conf(server_conf_t *conf)
     destroy_string(conf->logFmtName);
     destroy_string(conf->pidFileName);
     destroy_string(conf->resetCmd);
-
+#ifdef WITH_FREEIPMI
+    destroy_string(conf->globalIpmiOpts.username);
+    destroy_string(conf->globalIpmiOpts.password);
+#endif /* WITH_FREEIPMI */
     free(conf);
     return;
 }
@@ -563,6 +583,9 @@ static void signal_daemon(server_conf_t *conf)
         fprintf(stderr, "Configuration \"%s\" (pid %d) %s signal=%d\n",
             conf->confFileName, (int) pid, msg, conf->throwSignal);
     }
+#ifdef WITH_FREEIPMI
+    ipmi_teardown();
+#endif /* WITH_FREEIPMI */
     destroy_server_conf(conf);
     exit(0);
 }
@@ -571,7 +594,8 @@ static void signal_daemon(server_conf_t *conf)
 static void parse_console_directive(server_conf_t *conf, Lex l)
 {
 /*  CONSOLE NAME="<str>" DEV="<file>" \
- *    [LOG="<file>"] [LOGOPTS="<str>"] [SEROPTS="<str>"]
+ *    [LOG="<file>"] [LOGOPTS="<str>"] [SEROPTS="<str>"] [IPMIOPTS="<str>"]
+ *  note: IPMIOPTS is only available if configured with WITH_FREEIPMI
  */
     char *directive;                    /* name of directive being parsed */
     int line;                           /* line # where directive begins */
@@ -676,7 +700,22 @@ static void parse_console_directive(server_conf_t *conf, Lex l)
                 replace_string(&con.sopts, lex_text(l));
             }
             break;
-
+#ifdef WITH_FREEIPMI
+	case SERVER_CONF_IPMIOPTS:
+	    if (lex_next(l) != '=') {
+		snprintf(err, sizeof(err), "unexpected '=' after %s keyword",
+                    server_conf_strs[LEX_UNTOK(tok)]);
+	    }
+	    else if ((lex_next(l) != LEX_STR)
+		     || is_empty_string(lex_text(l))) {
+		snprintf(err, sizeof(err), "expected STRING for %s value",
+		    server_conf_strs[LEX_UNTOK(tok)]);
+	    }
+	    else {
+		replace_string(&con.iopts, lex_text(l));
+	    }
+	    break;
+#endif /* WITH_FREEIPMI */
         case LEX_EOF:
         case LEX_EOL:
             done = 1;
@@ -730,6 +769,9 @@ static int process_console(server_conf_t *conf, console_strs_t *con_p,
     char        *path = NULL;
     obj_t       *console;
     seropt_t     seropts;
+#ifdef WITH_FREEIPMI
+    ipmiopt_t    ipmiopts;
+#endif /* WITH_FREEIPMI */
     logopt_t     logopts;
     obj_t       *logfile;
 
@@ -813,6 +855,26 @@ static int process_console(server_conf_t *conf, console_strs_t *con_p,
             goto err;
         }
     }
+#ifdef WITH_FREEIPMI
+    else if (is_ipmi_dev(arg0, &host)) {
+	if (list_count(args) != 1) {
+	    snprintf(errbuf, errbuflen,
+		"console [%s] dev string has too many args", con_p->name);
+	    goto err;
+	}
+	ipmiopts = conf->globalIpmiOpts;
+	if (con_p->iopts && parse_ipmi_opts(
+		&ipmiopts, con_p->iopts, errbuf, errbuflen) < 0) {
+	    goto err;
+	}
+	if (!(console = create_ipmi_obj(
+		conf, con_p->name, &ipmiopts, host, errbuf, errbuflen))) {
+	    goto err;
+	}
+	free(host);
+	host = NULL;
+    }
+#endif /* WITH_FREEIPMI */
     else {
         snprintf(errbuf, errbuflen,
             "console [%s] device \"%s\" type unrecognized",
@@ -884,7 +946,30 @@ static int is_telnet_dev(const char *dev, char **host_ref, int *port_ref)
     }
     return(1);
 }
+#ifdef WITH_FREEIPMI
+static int is_ipmi_dev(const char *dev, char **host_ref)
+{
+    char  buf[MAX_LINE];
+    char *p;
 
+    assert(dev != NULL);
+
+    if (strlcpy(buf, dev, sizeof(buf)) >= sizeof(buf)) {
+        return(0);
+    }
+    if (strncmp(buf, "ipmi:", 5) != 0) {
+	return(0);
+    }
+    p = buf + 5;
+    if (p == '\0') {
+	return(0);
+    }
+    if (host_ref) {
+	*host_ref = strdup(p);
+    }
+    return(1);
+}
+#endif /* WITH_FREEIPMI */
 
 static int is_serial_dev(const char *dev, const char *cwd, char **path_ref)
 {
@@ -1083,7 +1168,23 @@ static void parse_global_directive(server_conf_t *conf, Lex l)
                     err, sizeof(err));
             }
             break;
-
+#ifdef WITH_FREEIPMI
+	case SERVER_CONF_IPMIOPTS:
+            if (lex_next(l) != '=') {
+                snprintf(err, sizeof(err), "expected '=' after %s keyword",
+                    server_conf_strs[LEX_UNTOK(tok)]);
+            }
+            else if ((lex_next(l) != LEX_STR)
+                    || is_empty_string(lex_text(l))) {
+                snprintf(err, sizeof(err), "expected STRING for %s value",
+                    server_conf_strs[LEX_UNTOK(tok)]);
+            }
+            else {
+                parse_ipmi_opts(&conf->globalIpmiOpts, lex_text(l),
+                    err, sizeof(err));
+            }
+            break;
+#endif /* WITH_FREEIPMI */
         case LEX_EOF:
         case LEX_EOL:
             done = 1;
