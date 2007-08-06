@@ -180,7 +180,7 @@ obj_t * create_logfile_obj(server_conf_t *conf, char *name,
     }
 #ifdef WITH_FREEIPMI
     else if (is_ipmi_obj(console)) {
-	console->aux.ipmi.logfile = logfile;
+        console->aux.ipmi.logfile = logfile;
     }
 #endif /* WITH_FREEIPMI */
     else {

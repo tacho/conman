@@ -669,8 +669,8 @@ static void mux_io(server_conf_t *conf)
             if ((is_telnet_obj(obj)
                 && obj->aux.telnet.conState == CONMAN_TELCON_UP)
 #ifdef WITH_FREEIPMI
-	      ||(is_ipmi_obj(obj)
-		&& obj->aux.ipmi.state == CONMAN_IPMI_UP)
+              || (is_ipmi_obj(obj)
+                && obj->aux.ipmi.state == CONMAN_IPMI_UP)
 #endif /* WITH_FREEIPMI */
               || is_serial_obj(obj)
               || is_process_obj(obj)

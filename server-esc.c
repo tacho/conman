@@ -170,9 +170,9 @@ static void perform_serial_break(obj_t *client)
             send_telnet_cmd(console, BREAK, -1);
         }
 #ifdef WITH_FREEIPMI
-	else if (is_ipmi_obj(console)) {
-	    send_ipmi_break(console);
-	}
+        else if (is_ipmi_obj(console)) {
+            send_ipmi_break(console);
+        }
 #endif /* WITH_FREEIPMI */
     }
     list_iterator_destroy(i);

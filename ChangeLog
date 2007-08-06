@@ -1,12 +1,19 @@
+2007-08-06  Chris Dunlap  <cdunlap@llnl.gov>
+
+	* Makefile.in, configure.ac, etc/conman.conf, man/conman.conf.5.in,
+	  server-conf.c, server-esc.c, server-ipmi.c, server-logfile.c,
+	  server-obj.c, server-sock.c, server.c, server.h:
+	  Tweaked formatting of patched files.
+
 2007-07-30  Levi Pearson  <lpearson@lnxi.com>
 
 	* server.c, server.h, server-sock.c, server-obj.c, server-logfile.c,
 	  server-esc.c, server-conf.c, server-ipmi.c, configure.ac,
 	  config.h.in, Makefile.in:
-	  Added an object type to access Serial-over-LAN consoles via IPMI
-	  through FreeIPMI's libipmiconsole
+	  Added an object type to access Serial-Over-LAN consoles via IPMI
+	  through FreeIPMI's libipmiconsole.
 
-	* man/conman.conf.5.in: Updated documentation to reflect SoL consoles
+	* man/conman.conf.5.in: Updated documentation to reflect SOL consoles.
 
 2007-05-24  Chris Dunlap  <cdunlap@llnl.gov>
 

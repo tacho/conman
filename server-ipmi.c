@@ -26,136 +26,147 @@
 #endif /* HAVE_CONFIG_H */
 
 #include <assert.h>
+#include <ctype.h>
+#include <errno.h>
 #include <ipmiconsole.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <errno.h>
-#include <ctype.h>
+#include "common.h"
 #include "list.h"
 #include "server.h"
-#include "common.h"
 #include "tpoll.h"
 #include "util-str.h"
 
-static int ipmi_engine_started = 0;
+
 extern tpoll_t tp_global;		/* defined in server.c */
+static int ipmi_engine_started = 0;
 
 static int connect_ipmi_obj(obj_t *ipmi);
 static void disconnect_ipmi_obj(obj_t *ipmi);
 
-void ipmi_setup(void) {
+
+void ipmi_setup(void)
+{
     if (ipmi_engine_started == 0) {
-	ipmiconsole_engine_init(IPMI_ENGINE_THREADS, 0);
-	ipmi_engine_started = 1;
+        ipmiconsole_engine_init(IPMI_ENGINE_THREADS, 0);
+        ipmi_engine_started = 1;
     }
 }
 
-void ipmi_teardown(void) {
+
+void ipmi_teardown(void)
+{
     if (ipmi_engine_started == 1) {
-	ipmiconsole_engine_teardown();
-	ipmi_engine_started = 0;
+        ipmiconsole_engine_teardown();
+        ipmi_engine_started = 0;
     }
 }
 
-/* a k_g key is interpreted as ascii text unless it is prefixed with
-   "0x", in which case is it interpreted as hexadecimal */
+
 static int parse_kg(unsigned char *outbuf, int outsz, const char *instr)
 {
-  char *p, *q;
-  int i, j;
-  char buf[3] = {0, 0, 0};
+/*  A k_g key is interpreted as ascii text unless it is prefixed with "0x",
+ *    in which case is it interpreted as hexadecimal.
+ */
+    char *p, *q;
+    int i, j;
+    char buf[3] = {0, 0, 0};
 
-  assert(outbuf != NULL);
-  assert(instr != NULL);
-  assert(outsz == IPMI_K_G_MAX);
+    assert(outbuf != NULL);
+    assert(instr != NULL);
+    assert(outsz == IPMI_K_G_MAX);
 
-  if (strlen(instr) == 0)
-      return(0);
+    if (strlen(instr) == 0)
+        return(0);
 
-  if (strncmp(instr, "0x", 2) == 0) {
-      if (strlen(instr) > IPMI_K_G_MAX*2+2)
-	  return(-1);
-      p = (char *)instr + 2;
-      memset(outbuf, 0, IPMI_K_G_MAX);
-      for (i = j = 0; i < strlen(p); i+=2, j++) {
-          if (p[i+1] == '\0')
-	      return(-1);
-          buf[0] = p[i]; buf[1] = p[i+1]; buf[2] = 0;
-          errno = 0;
-          outbuf[j] = strtoul(buf, &q, 16);
-          if (errno || (q != buf + 2))
-	      return(-1);
-      }
-  }
-  else {
-      if (strlen(instr) > IPMI_K_G_MAX)
-	  return(-1);
-      memset(outbuf, 0, IPMI_K_G_MAX);
-      memcpy(outbuf, instr, strlen(instr));
-  }
+    if (strncmp(instr, "0x", 2) == 0) {
+        if (strlen(instr) > IPMI_K_G_MAX*2+2)
+            return(-1);
+        p = (char *)instr + 2;
+        memset(outbuf, 0, IPMI_K_G_MAX);
+        for (i = j = 0; i < strlen(p); i+=2, j++) {
+            if (p[i+1] == '\0')
+                return(-1);
+            buf[0] = p[i]; buf[1] = p[i+1]; buf[2] = 0;
+            errno = 0;
+            outbuf[j] = strtoul(buf, &q, 16);
+            if (errno || (q != buf + 2))
+                return(-1);
+        }
+    }
+    else {
+        if (strlen(instr) > IPMI_K_G_MAX)
+            return(-1);
+        memset(outbuf, 0, IPMI_K_G_MAX);
+        memcpy(outbuf, instr, strlen(instr));
+    }
 
-  return(1);
+    return(1);
 }
+
 
 static char *format_kg(char *outstr, int outsz, const unsigned char *k_g)
 {
-  int i;
-  int printable = 1;
-  int foundnull = 0;
-  char *p;
+    int i;
+    int printable = 1;
+    int foundnull = 0;
+    char *p;
 
-  assert(outstr != NULL);
-  assert(outsz > IPMI_K_G_MAX*2+2);
-  assert(k_g != NULL);
+    assert(outstr != NULL);
+    assert(outsz > IPMI_K_G_MAX*2+2);
+    assert(k_g != NULL);
 
-  /* Are there any characters that would prevent printing this as a
-     string on a single line? */
-  for (i = 0; i < IPMI_K_G_MAX; i++) {
-      if (k_g[i] == '\0') {
-          ++foundnull;
-          continue;
-      }
-      if (!(isgraph(k_g[i]) || k_g[i] == ' ') || foundnull) {
-          printable = 0;
-          break;
-      }
-  }
+    /*  Are there any characters that would prevent printing this as a string
+     *    on a single line?
+     */
+    for (i = 0; i < IPMI_K_G_MAX; i++) {
+        if (k_g[i] == '\0') {
+            ++foundnull;
+            continue;
+        }
+        if (!(isgraph(k_g[i]) || k_g[i] == ' ') || foundnull) {
+            printable = 0;
+            break;
+        }
+    }
 
-  /* print out an entirely null key in hex rather than an empty
-     string */
-  if (foundnull == IPMI_K_G_MAX)
-      printable = 0;
+    /*  Print out an entirely null key in hex rather than an empty string.
+     */
+    if (foundnull == IPMI_K_G_MAX)
+        printable = 0;
 
-  /* don't print out a key starting with a literal '0x' as a string,
-     since parse_kg will try to interpret such strings as hex */
-  if (k_g[0] == '0' && k_g[1] == 'x')
-      printable = 0;
+    /*  Don't print out a key starting with a literal '0x' as a string
+     *    since parse_kg will try to interpret such strings as hex.
+     */
+    if (k_g[0] == '0' && k_g[1] == 'x')
+        printable = 0;
 
-  if (printable) {
-      if (outsz < IPMI_K_G_MAX+1)
-	  return(NULL);
-      p = outstr;
-      for (i = 0; i < IPMI_K_G_MAX; i++) {
-          if (k_g[i] == '\0')
-	      break;
-          p[i] = k_g[i];
-      }
-      p[i] = 0;
-  }
-  else {
-      if (outsz < IPMI_K_G_MAX*2+3)
-	  return(NULL);
-      p = outstr;
-      p[0] = '0'; p[1] = 'x';
-      p += 2;
-      for (i = 0; i < IPMI_K_G_MAX; i++, p+=2)
-	  sprintf(p, "%02x", k_g[i]);
-  }
+    if (printable) {
+        if (outsz < IPMI_K_G_MAX+1)
+            return(NULL);
+        p = outstr;
+        for (i = 0; i < IPMI_K_G_MAX; i++) {
+            if (k_g[i] == '\0')
+                break;
+            p[i] = k_g[i];
+        }
+        p[i] = 0;
+    }
+    else {
+        if (outsz < IPMI_K_G_MAX*2+3)
+            return(NULL);
+        p = outstr;
+        p[0] = '0'; p[1] = 'x';
+        p += 2;
+        for (i = 0; i < IPMI_K_G_MAX; i++, p+=2)
+            sprintf(p, "%02x", k_g[i]);
+    }
 
-  return(outstr);
+    return(outstr);
 }
+
 
 int parse_ipmi_opts(
     ipmiopt_t *iopts, const char *str, char *errbuf, int errlen)
@@ -176,67 +187,68 @@ int parse_ipmi_opts(
     memset(&ioptsTmp, 0, sizeof(ipmiopt_t));
 
     if ((str == NULL) || str[0] == '\0') {
-	if ((errbuf != NULL) && (errlen > 0))
-	    snprintf(errbuf, errlen, "encountered empty options string");
-	return(-1);
+        if ((errbuf != NULL) && (errlen > 0))
+            snprintf(errbuf, errlen, "encountered empty options string");
+        return(-1);
     }
-    
+
     if (strlcpy(buf, str, sizeof(buf)) >= sizeof(buf)) {
-	if ((errbuf != NULL) && (errlen > 0))
-	    snprintf(errbuf, errlen, "ipmiopt string exceeded buffer size");
-	return(-1);
+        if ((errbuf != NULL) && (errlen > 0))
+            snprintf(errbuf, errlen, "ipmiopt string exceeded buffer size");
+        return(-1);
     }
-   
+
     tok = strtok(buf, separators);
     if (tok == NULL) {
-	if ((errbuf != NULL) && (errlen > 0))
-	    snprintf(errbuf, errlen, "ipmiopt username not specified");
-	return(-1);
+        if ((errbuf != NULL) && (errlen > 0))
+            snprintf(errbuf, errlen, "ipmiopt username not specified");
+        return(-1);
     }
     if (strlen(tok) > IPMI_USERNAME_MAX) {
-	if ((errbuf != NULL) && (errlen > 0))
-	    snprintf(errbuf, errlen, "ipmiopt username exceeds max length");
-	return(-1);
+        if ((errbuf != NULL) && (errlen > 0))
+            snprintf(errbuf, errlen, "ipmiopt username exceeds max length");
+        return(-1);
     }
 
     ioptsTmp.username = strdup(tok);
 
     tok = strtok(NULL, separators);
     if (tok == NULL) {
-	if ((errbuf != NULL) && (errlen > 0))
-	    snprintf(errbuf, errlen, "ipmiopt password not specified");
-	goto cleanup;
+        if ((errbuf != NULL) && (errlen > 0))
+            snprintf(errbuf, errlen, "ipmiopt password not specified");
+        goto cleanup;
     }
     if (strlen(tok) > IPMI_PASSWORD_MAX) {
-	if ((errbuf != NULL) && (errlen > 0))
-	    snprintf(errbuf, errlen, "ipmiopt password exceeds max length");
-	goto cleanup;
+        if ((errbuf != NULL) && (errlen > 0))
+            snprintf(errbuf, errlen, "ipmiopt password exceeds max length");
+        goto cleanup;
     }
 
     ioptsTmp.password = strdup(tok);
 
     tok = strtok(NULL, separators);
     if (tok == NULL) {
-	memcpy(ioptsTmp.k_g, iopts->k_g, IPMI_K_G_MAX);
-    } 
-    else {
-	if (parse_kg(ioptsTmp.k_g, IPMI_K_G_MAX, tok) < 0) {
-	    if ((errbuf != NULL && (errlen > 0)))
-		snprintf(errbuf, errlen, "ipmiopt k_g is invalid");
-	    goto cleanup;
-	}
+        memcpy(ioptsTmp.k_g, iopts->k_g, IPMI_K_G_MAX);
     }
-    
+    else {
+        if (parse_kg(ioptsTmp.k_g, IPMI_K_G_MAX, tok) < 0) {
+            if ((errbuf != NULL && (errlen > 0)))
+                snprintf(errbuf, errlen, "ipmiopt k_g is invalid");
+            goto cleanup;
+        }
+    }
+
     *iopts = ioptsTmp;
     return(0);
 
  cleanup:
     if (ioptsTmp.username)
-	free(ioptsTmp.username);
+        free(ioptsTmp.username);
     if (ioptsTmp.password)
-	free(ioptsTmp.password);
+        free(ioptsTmp.password);
     return(-1);
 }
+
 
 obj_t * create_ipmi_obj(server_conf_t *conf, char *name,
     ipmiopt_t *iconf, char *hostname, char *errbuf, int errlen)
@@ -256,20 +268,20 @@ obj_t * create_ipmi_obj(server_conf_t *conf, char *name,
     i = list_iterator_create(conf->objs);
     while ((ipmi = list_next(i))) {
         if (is_console_obj(ipmi) && !strcmp(ipmi->name, name)) {
-	    snprintf(errbuf, errlen,
-		"console [%s] specifies duplicate console name", name);
-	    break;
-	}
-	if (is_ipmi_obj(ipmi) && !strcmp(ipmi->aux.ipmi.hostname, hostname)) {
-	    snprintf(errbuf, errlen,
-		     "console [%s] specifies duplicate hostname \"%s\"", 
-		     name, hostname);
-	    break;
-	}
+            snprintf(errbuf, errlen,
+                "console [%s] specifies duplicate console name", name);
+            break;
+        }
+        if (is_ipmi_obj(ipmi) && !strcmp(ipmi->aux.ipmi.hostname, hostname)) {
+            snprintf(errbuf, errlen,
+                "console [%s] specifies duplicate hostname \"%s\"",
+                name, hostname);
+            break;
+        }
     }
     list_iterator_destroy(i);
     if (ipmi != NULL) {
-	return(NULL);
+        return(NULL);
     }
     ipmi = create_obj(conf, name, -1, CONMAN_OBJ_IPMI);
     ipmi->aux.ipmi.hostname = strdup(hostname);
@@ -277,17 +289,18 @@ obj_t * create_ipmi_obj(server_conf_t *conf, char *name,
     ipmi->aux.ipmi.ctx = NULL;
     ipmi->aux.ipmi.logfile = NULL;
     ipmi->aux.ipmi.state = CONMAN_IPMI_DOWN;
-    /*  Add obj to the master conf->objs list.
+    /*
+     *  Add obj to the master conf->objs list.
      */
     list_append(conf->objs, ipmi);
 
     return(ipmi);
 }
 
+
 int new_ipmi_ctx(obj_t *ipmi)
 {
-/*
- *  Returns 0 if the IPMI ctx is sucessfully created; o/w, returns -1.
+/*  Returns 0 if the IPMI ctx is sucessfully created; o/w, returns -1.
  */
     struct ipmiconsole_ipmi_config ipmi_config;
     struct ipmiconsole_protocol_config protocol_config;
@@ -295,39 +308,42 @@ int new_ipmi_ctx(obj_t *ipmi)
     assert(ipmi != NULL);
     assert(is_ipmi_obj(ipmi));
 
-    /* create the ctx object if it doesn't already exist */
+    /*  Create the ctx object if it doesn't already exist.
+     */
     if (ipmi->aux.ipmi.ctx == NULL) {
-	/* set up configuration structs for the ctx creation */
-	ipmi_config.username = ipmi->aux.ipmi.iconf.username;
-	ipmi_config.password = ipmi->aux.ipmi.iconf.password;
-	ipmi_config.k_g = malloc(IPMI_K_G_MAX);
-	memcpy(ipmi_config.k_g, ipmi->aux.ipmi.iconf.k_g, IPMI_K_G_MAX);
+        /*
+         *  Setup configuration structs for the ctx creation.
+         */
+        ipmi_config.username = ipmi->aux.ipmi.iconf.username;
+        ipmi_config.password = ipmi->aux.ipmi.iconf.password;
+        ipmi_config.k_g = malloc(IPMI_K_G_MAX);
+        memcpy(ipmi_config.k_g, ipmi->aux.ipmi.iconf.k_g, IPMI_K_G_MAX);
 
-	ipmi_config.k_g_len = IPMI_K_G_MAX;
-	ipmi_config.privilege_level = -1;
-	ipmi_config.cipher_suite_id = -1;
+        ipmi_config.k_g_len = IPMI_K_G_MAX;
+        ipmi_config.privilege_level = -1;
+        ipmi_config.cipher_suite_id = -1;
 
-	protocol_config.session_timeout_len = -1;
-	protocol_config.retransmission_timeout_len = -1;
-	protocol_config.retransmission_backoff_count = -1;
-	protocol_config.keepalive_timeout_len = -1;
-	protocol_config.retransmission_keepalive_timeout_len = -1;
-	protocol_config.acceptable_packet_errors_count = -1;
-	protocol_config.maximum_retransmission_count = -1;
-	protocol_config.debug_flags = 0;
-	protocol_config.security_flags = 0;
-	protocol_config.workaround_flags = 0;
+        protocol_config.session_timeout_len = -1;
+        protocol_config.retransmission_timeout_len = -1;
+        protocol_config.retransmission_backoff_count = -1;
+        protocol_config.keepalive_timeout_len = -1;
+        protocol_config.retransmission_keepalive_timeout_len = -1;
+        protocol_config.acceptable_packet_errors_count = -1;
+        protocol_config.maximum_retransmission_count = -1;
+        protocol_config.debug_flags = 0;
+        protocol_config.security_flags = 0;
+        protocol_config.workaround_flags = 0;
 
-	ipmi->aux.ipmi.ctx = ipmiconsole_ctx_create(ipmi->aux.ipmi.hostname,
-						    &ipmi_config,
-						    &protocol_config);
-	if (!ipmi->aux.ipmi.ctx)
-	    return(-1);
+        ipmi->aux.ipmi.ctx = ipmiconsole_ctx_create(ipmi->aux.ipmi.hostname,
+            &ipmi_config, &protocol_config);
+        if (!ipmi->aux.ipmi.ctx)
+            return(-1);
 
-	ipmi->aux.ipmi.state = CONMAN_IPMI_DOWN;
+        ipmi->aux.ipmi.state = CONMAN_IPMI_DOWN;
     }
     return(0);
 }
+
 
 int open_ipmi_obj(obj_t *ipmi)
 {
@@ -338,28 +354,32 @@ int open_ipmi_obj(obj_t *ipmi)
     assert(is_ipmi_obj(ipmi));
 
     if (ipmi->aux.ipmi.state == CONMAN_IPMI_UP) {
-	disconnect_ipmi_obj(ipmi);
+        disconnect_ipmi_obj(ipmi);
     }
     else {
-	rv = new_ipmi_ctx(ipmi);
-	if (rv < 0)
-	    return(rv);
-	rv = connect_ipmi_obj(ipmi);
+        rv = new_ipmi_ctx(ipmi);
+        if (rv < 0)
+            return(rv);
+        rv = connect_ipmi_obj(ipmi);
     }
     DPRINTF((9, "Opened [%s] ipmi: host=%s state=%d.\n",
-	     ipmi->name, ipmi->aux.ipmi.hostname, ipmi->fd, (int) ipmi->aux.ipmi.state));
+        ipmi->name, ipmi->aux.ipmi.hostname, ipmi->fd,
+        (int) ipmi->aux.ipmi.state));
     return(rv);
 }
+
 
 int send_ipmi_break(obj_t *ipmi)
 {
     assert(ipmi != NULL);
     assert(is_ipmi_obj(ipmi));
     assert(ipmi->aux.ipmi.ctx != NULL);
+
     return(ipmiconsole_ctx_generate_break(ipmi->aux.ipmi.ctx));
 }
 
-static int connect_ipmi_obj(obj_t *ipmi) 
+
+static int connect_ipmi_obj(obj_t *ipmi)
 {
     int rv = 0;
 
@@ -369,115 +389,119 @@ static int connect_ipmi_obj(obj_t *ipmi)
     assert(ipmi->aux.ipmi.ctx != NULL);
 
     if (ipmi->aux.ipmi.timer >= 0) {
-	(void) tpoll_timeout_cancel(tp_global, ipmi->aux.ipmi.timer);
-	ipmi->aux.ipmi.timer = -1;
+        (void) tpoll_timeout_cancel(tp_global, ipmi->aux.ipmi.timer);
+        ipmi->aux.ipmi.timer = -1;
     }
     if (ipmi->aux.ipmi.state == CONMAN_IPMI_DOWN) {
-	/* Do a non-blocking submit of this ctx to the engine */
-	DPRINTF((10, "Connecting to <%s> for [%s].\n", 
-		 ipmi->aux.ipmi.hostname, ipmi->name));
-	rv = ipmiconsole_engine_submit(ipmi->aux.ipmi.ctx);
-	if (rv < 0) {
-	    log_msg(LOG_WARNING, 
-		    "Unable to submit ipmi ctx to engine for [%s]: %s", ipmi->name,
-		    ipmiconsole_ctx_strerror(ipmiconsole_ctx_errnum(ipmi->aux.ipmi.ctx)));
-	    return(-1);
-	}
-	if ((ipmi->fd = ipmiconsole_ctx_fd(ipmi->aux.ipmi.ctx)) < 0) {
-	    log_msg(LOG_WARNING, 
-		    "Unable to get a file descriptor for [%s]", ipmi->name);
-	    return(-1);
-	}
-	ipmi->aux.ipmi.state = CONMAN_IPMI_PENDING;
-	ipmi->aux.ipmi.timer = tpoll_timeout_relative(tp_global,
-						      (callback_f) connect_ipmi_obj,
-						      ipmi, 
-						      IPMI_STATUS_CHECK_TIMEOUT * 1000);
-	return(-1);
+        /*
+         *  Do a non-blocking submit of this ctx to the engine.
+         */
+        DPRINTF((10, "Connecting to <%s> for [%s].\n",
+            ipmi->aux.ipmi.hostname, ipmi->name));
+        rv = ipmiconsole_engine_submit(ipmi->aux.ipmi.ctx);
+        if (rv < 0) {
+            log_msg(LOG_WARNING,
+                "Unable to submit ipmi ctx to engine for [%s]: %s", ipmi->name,
+                ipmiconsole_ctx_strerror(ipmiconsole_ctx_errnum(
+                    ipmi->aux.ipmi.ctx)));
+            return(-1);
+        }
+        if ((ipmi->fd = ipmiconsole_ctx_fd(ipmi->aux.ipmi.ctx)) < 0) {
+            log_msg(LOG_WARNING,
+                "Unable to get a file descriptor for [%s]", ipmi->name);
+            return(-1);
+        }
+        ipmi->aux.ipmi.state = CONMAN_IPMI_PENDING;
+        ipmi->aux.ipmi.timer = tpoll_timeout_relative(tp_global,
+            (callback_f) connect_ipmi_obj,
+            ipmi,
+            IPMI_STATUS_CHECK_TIMEOUT * 1000);
+        return(-1);
     }
     else if (ipmi->aux.ipmi.state == CONMAN_IPMI_PENDING) {
-	/* Check with the engine to see if the connection was successful */
-	rv = ipmiconsole_ctx_status(ipmi->aux.ipmi.ctx);
-	if (rv < 0) {
-	    /* something wonky happened and we couldn't get the connection status */
-	    log_msg(LOG_WARNING, 
-		    "Error retrieving ipmi ctx status from engine for [%s]", ipmi->name);
-	    disconnect_ipmi_obj(ipmi);
-	    return(-1);
-	}
+        /*
+         *  Check with the engine to see if the connection was successful.
+         */
+        rv = ipmiconsole_ctx_status(ipmi->aux.ipmi.ctx);
+        if (rv < 0) {
+            /* something wonky happened and we couldn't get the conn status */
+            log_msg(LOG_WARNING,
+                "Error retrieving ipmi ctx status from engine for [%s]",
+                ipmi->name);
+            disconnect_ipmi_obj(ipmi);
+            return(-1);
+        }
 
-	if (rv == IPMICONSOLE_CONTEXT_STATUS_ERROR) {
-	    /* an error occurred with the ipmi connection */
-	    rv = ipmiconsole_ctx_errnum(ipmi->aux.ipmi.ctx);
-	    log_msg(LOG_WARNING, "Error establishing ipmi link for [%s]: %s", 
-		    ipmi->name,
-		    ipmiconsole_ctx_strerror(rv));
-	    ipmi->fd = -1;
-	    disconnect_ipmi_obj(ipmi);
-	    return(-1);
-	}
+        if (rv == IPMICONSOLE_CONTEXT_STATUS_ERROR) {
+            /* an error occurred with the ipmi connection */
+            rv = ipmiconsole_ctx_errnum(ipmi->aux.ipmi.ctx);
+            log_msg(LOG_WARNING, "Error establishing ipmi link for [%s]: %s",
+                ipmi->name, ipmiconsole_ctx_strerror(rv));
+            ipmi->fd = -1;
+            disconnect_ipmi_obj(ipmi);
+            return(-1);
+        }
 
-	if (rv == IPMICONSOLE_CONTEXT_STATUS_NONE) {
-	    /* wait a bit longer */
-	    ipmi->aux.ipmi.timer = tpoll_timeout_relative(tp_global,
-							  (callback_f) connect_ipmi_obj,
-							  ipmi, 
-							  IPMI_STATUS_CHECK_TIMEOUT * 1000);
-	    return(-1);
-	}
-	
-	if (rv == IPMICONSOLE_CONTEXT_STATUS_SOL_ESTABLISHED) {
-	    /* success! */
-	    write_notify_msg(ipmi, LOG_INFO, "Console [%s] connected to <%s> via IPMI",
-			     ipmi->name, ipmi->aux.ipmi.hostname);
-	    ipmi->aux.ipmi.state = CONMAN_IPMI_UP;
-	    return(0);
-	}
-	else {
-	    log_msg(LOG_WARNING, 
-		    "Unrecognized ipmi ctx status value %d for [%s]", rv, ipmi->name);
-	    disconnect_ipmi_obj(ipmi);
-	    return(-1);
-	}
+        if (rv == IPMICONSOLE_CONTEXT_STATUS_NONE) {
+            /* wait a bit longer */
+            ipmi->aux.ipmi.timer = tpoll_timeout_relative(tp_global,
+                (callback_f) connect_ipmi_obj, ipmi,
+                IPMI_STATUS_CHECK_TIMEOUT * 1000);
+            return(-1);
+        }
+
+        if (rv == IPMICONSOLE_CONTEXT_STATUS_SOL_ESTABLISHED) {
+            /* success! */
+            write_notify_msg(ipmi, LOG_INFO,
+                "Console [%s] connected to <%s> via IPMI",
+                ipmi->name, ipmi->aux.ipmi.hostname);
+            ipmi->aux.ipmi.state = CONMAN_IPMI_UP;
+            return(0);
+        }
+        else {
+            log_msg(LOG_WARNING,
+                "Unrecognize ipmi ctx status value %d for [%s]",
+                rv, ipmi->name);
+            disconnect_ipmi_obj(ipmi);
+            return(-1);
+        }
     }
     return(rv);
 }
 
-static void disconnect_ipmi_obj(obj_t *ipmi) 
+
+static void disconnect_ipmi_obj(obj_t *ipmi)
 {
     assert(ipmi != NULL);
     assert(is_ipmi_obj(ipmi));
     int rv;
 
     if (ipmi->aux.ipmi.timer >= 0) {
-	(void) tpoll_timeout_cancel(tp_global, ipmi->aux.ipmi.timer);
-	ipmi->aux.ipmi.timer = -1;
+        (void) tpoll_timeout_cancel(tp_global, ipmi->aux.ipmi.timer);
+        ipmi->aux.ipmi.timer = -1;
     }
     if (ipmi->fd >= 0) {
-	close(ipmi->fd);
-	ipmi->fd = -1;
+        close(ipmi->fd);
+        ipmi->fd = -1;
     }
     if (ipmiconsole_ctx_destroy(ipmi->aux.ipmi.ctx) < 0) {
-	ipmi->aux.ipmi.timer = tpoll_timeout_relative(tp_global,
-						      (callback_f) disconnect_ipmi_obj,
-						      ipmi,
-						      IPMI_STATUS_CHECK_TIMEOUT * 1000);
+        ipmi->aux.ipmi.timer = tpoll_timeout_relative(tp_global,
+            (callback_f) disconnect_ipmi_obj, ipmi,
+            IPMI_STATUS_CHECK_TIMEOUT * 1000);
     }
     else {
-	ipmi->aux.ipmi.ctx = NULL;
-	if (ipmi->aux.ipmi.state == CONMAN_IPMI_UP) {
-	    write_notify_msg(ipmi, LOG_NOTICE,
-			     "Console [%s] disconnected from <%s> via IPMI",
-			     ipmi->name, ipmi->aux.ipmi.hostname);
-	}
-	rv = new_ipmi_ctx(ipmi);
-	if (rv < 0)
-	    log_err(rv, "new_ipmi_ctx failed");
-	ipmi->aux.ipmi.state = CONMAN_IPMI_DOWN;
-	ipmi->aux.ipmi.timer = tpoll_timeout_relative(tp_global,
-						      (callback_f) connect_ipmi_obj,
-						      ipmi,
-						      IPMI_CONNECT_RETRY_TIMEOUT * 1000);
+        ipmi->aux.ipmi.ctx = NULL;
+        if (ipmi->aux.ipmi.state == CONMAN_IPMI_UP) {
+            write_notify_msg(ipmi, LOG_NOTICE,
+                "Console [%s] disconnected from <%s> via IPMI",
+                ipmi->name, ipmi->aux.ipmi.hostname);
+        }
+        rv = new_ipmi_ctx(ipmi);
+        if (rv < 0)
+            log_err(rv, "new_ipmi_ctx failed");
+        ipmi->aux.ipmi.state = CONMAN_IPMI_DOWN;
+        ipmi->aux.ipmi.timer = tpoll_timeout_relative(tp_global,
+            (callback_f) connect_ipmi_obj, ipmi,
+            IPMI_CONNECT_RETRY_TIMEOUT * 1000);
     }
 }
-

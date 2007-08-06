@@ -137,11 +137,11 @@ for none, '\fBo\fR' for odd, and '\fBe\fR' for even.
 .sp
 The default is "9600,8n1" for 9600 bps, 8 data bits, no parity, and 1 stop bit.
 .TP
-\fBseropts\fR \fB=\fR "\fIusername\fR,\fIpassword,\fR[,\fIK_g key\fR]"
-Specifies global options for IPMI Serial-over-LAN devices.  These options
-can be overriden on a per-console basis by specifying the \fBCONSOLE\fR
+\fBipmiopts\fR \fB=\fR "\fIusername\fR,\fIpassword\fR[,\fIK_g\fR]"
+Specifies global options for IPMI Serial-Over-LAN devices.  These options can
+be overridden on a per-console basis by specifying the \fBCONSOLE\fR
 \fBipmiopts\fR keyword.  This directive is only available if compiled with the
-\fB--with-freeipmi\fR option.
+"--with-freeipmi" option.
 .br
 .sp
 \fIusername\fR is a string of no more than 16 characters that specifies the
@@ -152,11 +152,10 @@ username with which to authenticate to the BMCs serving the remote consoles.
 password with which to authenticate to the BMCs serving the remote consoles.
 .br
 .sp
-\fIK_g key\f\R is a string that specifies the K_g key with which to
-authenticate to the BMCs serving the remote consoles.  The key must be at
-most 20 bytes long, and can be specified directly as a string or in hex,
-in which case this string should begin with "0x" followed by at most 40 hex
-digits.
+\fIK_g\fR is a string that specifies the K_g key with which to authenticate to
+the BMCs serving the remote consoles.  The key must be at most 20 bytes long,
+and can be specified directly as a string or in hex, in which case this string
+should begin with "0x" followed by at most 40 hex digits.
 
 .SH CONSOLE DIRECTIVES
 This directive defines an individual console being managed by the daemon.

@@ -29,14 +29,14 @@
 #define _SERVER_H
 
 
+#ifdef WITH_FREEIPMI
+#include <ipmiconsole.h>
+#endif /* WITH_FREEIPMI */
 #include <netinet/in.h>                 /* for struct sockaddr_in            */
 #include <pthread.h>
 #include <sys/types.h>
 #include <termios.h>                    /* for struct termios, speed_t       */
 #include <time.h>                       /* for time_t                        */
-#ifdef WITH_FREEIPMI
-#include <ipmiconsole.h>                /* for IPMI SoL consoles             */
-#endif /* WITH_FREEIPMI */
 #include "common.h"
 #include "list.h"
 #include "tpoll.h"
@@ -65,8 +65,8 @@
 #define IPMI_USERNAME_MAX               16
 #define IPMI_PASSWORD_MAX               20
 #define IPMI_ENGINE_THREADS             5
-#define IPMI_STATUS_CHECK_TIMEOUT       5 /* seconds */
-#define IPMI_CONNECT_RETRY_TIMEOUT      30 /* seconds */
+#define IPMI_STATUS_CHECK_TIMEOUT       5       /* seconds */
+#define IPMI_CONNECT_RETRY_TIMEOUT      30      /* seconds */
 #endif /* WITH_FREEIPMI */
 
 
@@ -155,7 +155,7 @@ typedef struct telnet_obj {             /* TELNET AUX OBJ DATA:              */
 typedef struct ipmi_opt {               /* IPMI OBJ OPTIONS:                 */
     char            *username;          /*  BMC user name for auth           */
     char            *password;          /*  BMC password for auth            */
-    unsigned char   k_g[IPMI_K_G_MAX];            /*  BMC Key for 2-key auth (optional)*/
+    unsigned char    k_g[IPMI_K_G_MAX]; /*  BMC Key for 2-key auth (optional)*/
 } ipmiopt_t;
 
 typedef struct ipmiconsole_ctx ipmictx_t;
@@ -399,11 +399,12 @@ int process_telnet_escapes(obj_t *telnet, void *src, int len);
 
 int send_telnet_cmd(obj_t *telnet, int cmd, int opt);
 
-#ifdef WITH_FREEIPMI
 /* server-ipmi.c
  */
+#ifdef WITH_FREEIPMI
 
 void ipmi_setup(void);
+
 void ipmi_teardown(void);
 
 int parse_ipmi_opts(
@@ -415,6 +416,7 @@ obj_t * create_ipmi_obj(server_conf_t *conf, char *name,
 int open_ipmi_obj(obj_t *ipmi);
 
 int send_ipmi_break(obj_t *ipmi);
+
 #endif /* WITH_FREEIPMI */
 
 #endif /* !_SERVER_H */

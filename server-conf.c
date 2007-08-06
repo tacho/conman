@@ -595,7 +595,7 @@ static void parse_console_directive(server_conf_t *conf, Lex l)
 {
 /*  CONSOLE NAME="<str>" DEV="<file>" \
  *    [LOG="<file>"] [LOGOPTS="<str>"] [SEROPTS="<str>"] [IPMIOPTS="<str>"]
- *  note: IPMIOPTS is only available if configured with WITH_FREEIPMI
+ *  Note: IPMIOPTS is only available if WITH_FREEIPMI is defined.
  */
     char *directive;                    /* name of directive being parsed */
     int line;                           /* line # where directive begins */
@@ -701,20 +701,20 @@ static void parse_console_directive(server_conf_t *conf, Lex l)
             }
             break;
 #ifdef WITH_FREEIPMI
-	case SERVER_CONF_IPMIOPTS:
-	    if (lex_next(l) != '=') {
-		snprintf(err, sizeof(err), "unexpected '=' after %s keyword",
+        case SERVER_CONF_IPMIOPTS:
+            if (lex_next(l) != '=') {
+                snprintf(err, sizeof(err), "unexpected '=' after %s keyword",
                     server_conf_strs[LEX_UNTOK(tok)]);
-	    }
-	    else if ((lex_next(l) != LEX_STR)
-		     || is_empty_string(lex_text(l))) {
-		snprintf(err, sizeof(err), "expected STRING for %s value",
-		    server_conf_strs[LEX_UNTOK(tok)]);
-	    }
-	    else {
-		replace_string(&con.iopts, lex_text(l));
-	    }
-	    break;
+            }
+            else if ((lex_next(l) != LEX_STR)
+                    || is_empty_string(lex_text(l))) {
+                snprintf(err, sizeof(err), "expected STRING for %s value",
+                    server_conf_strs[LEX_UNTOK(tok)]);
+            }
+            else {
+                replace_string(&con.iopts, lex_text(l));
+            }
+            break;
 #endif /* WITH_FREEIPMI */
         case LEX_EOF:
         case LEX_EOL:
@@ -857,22 +857,22 @@ static int process_console(server_conf_t *conf, console_strs_t *con_p,
     }
 #ifdef WITH_FREEIPMI
     else if (is_ipmi_dev(arg0, &host)) {
-	if (list_count(args) != 1) {
-	    snprintf(errbuf, errbuflen,
-		"console [%s] dev string has too many args", con_p->name);
-	    goto err;
-	}
-	ipmiopts = conf->globalIpmiOpts;
-	if (con_p->iopts && parse_ipmi_opts(
-		&ipmiopts, con_p->iopts, errbuf, errbuflen) < 0) {
-	    goto err;
-	}
-	if (!(console = create_ipmi_obj(
-		conf, con_p->name, &ipmiopts, host, errbuf, errbuflen))) {
-	    goto err;
-	}
-	free(host);
-	host = NULL;
+        if (list_count(args) != 1) {
+            snprintf(errbuf, errbuflen,
+                "console [%s] dev string has too many args", con_p->name);
+            goto err;
+        }
+        ipmiopts = conf->globalIpmiOpts;
+        if (con_p->iopts && parse_ipmi_opts(
+                &ipmiopts, con_p->iopts, errbuf, errbuflen) < 0) {
+            goto err;
+        }
+        if (!(console = create_ipmi_obj(
+                conf, con_p->name, &ipmiopts, host, errbuf, errbuflen))) {
+            goto err;
+        }
+        free(host);
+        host = NULL;
     }
 #endif /* WITH_FREEIPMI */
     else {
@@ -946,6 +946,8 @@ static int is_telnet_dev(const char *dev, char **host_ref, int *port_ref)
     }
     return(1);
 }
+
+
 #ifdef WITH_FREEIPMI
 static int is_ipmi_dev(const char *dev, char **host_ref)
 {
@@ -958,18 +960,19 @@ static int is_ipmi_dev(const char *dev, char **host_ref)
         return(0);
     }
     if (strncmp(buf, "ipmi:", 5) != 0) {
-	return(0);
+        return(0);
     }
     p = buf + 5;
     if (p == '\0') {
-	return(0);
+        return(0);
     }
     if (host_ref) {
-	*host_ref = strdup(p);
+        *host_ref = strdup(p);
     }
     return(1);
 }
 #endif /* WITH_FREEIPMI */
+
 
 static int is_serial_dev(const char *dev, const char *cwd, char **path_ref)
 {
@@ -1169,7 +1172,7 @@ static void parse_global_directive(server_conf_t *conf, Lex l)
             }
             break;
 #ifdef WITH_FREEIPMI
-	case SERVER_CONF_IPMIOPTS:
+        case SERVER_CONF_IPMIOPTS:
             if (lex_next(l) != '=') {
                 snprintf(err, sizeof(err), "expected '=' after %s keyword",
                     server_conf_strs[LEX_UNTOK(tok)]);

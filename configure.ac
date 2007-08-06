@@ -236,6 +236,7 @@ fi
 AC_MSG_CHECKING(whether to use TCP Wrappers)
 AC_MSG_RESULT(${tcp_wrappers=no})
 
+
 dnl Check for FreeIPMI libraries
 dnl
 AC_ARG_WITH(freeipmi,
@@ -252,9 +253,10 @@ if test "$freeipmi" != no; then
   AC_CHECK_HEADER(ipmiconsole.h, ac_have_ipmiconsole_h=yes)
   AC_CHECK_LIB(ipmiconsole, ipmiconsole_engine_init, ac_have_ipmiconsole=yes)
   if test "$ac_have_ipmiconsole_h" = yes -a "$ac_have_ipmiconsole" = yes; then
-    AC_DEFINE_UNQUOTED(WITH_FREEIPMI, 1, [Define if using FreeIPMI's libipmiconsole.])
+    AC_DEFINE_UNQUOTED(WITH_FREEIPMI, 1,
+      [Define if using FreeIPMI's libipmiconsole.])
     freeipmi=yes
-    SOBJS="server-ipmi.o $SOJBS"
+    SOBJS="server-ipmi.o $SOBJS"
     SLIBS="-lipmiconsole $SLIBS"
   else
     freeipmi=no

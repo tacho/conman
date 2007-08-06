@@ -923,7 +923,7 @@ static void check_console_state(obj_t *console, obj_t *client)
     }
 #ifdef WITH_FREEIPMI
     else if (is_ipmi_obj(console)
-	     && (console->aux.ipmi.state != CONMAN_IPMI_UP)) {
+            && (console->aux.ipmi.state != CONMAN_IPMI_UP)) {
         snprintf(buf, sizeof(buf),
             "%sConsole [%s] is currently disconnected from <%s>%s",
             CONMAN_MSG_PREFIX, console->name, console->aux.ipmi.hostname,
