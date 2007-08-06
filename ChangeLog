@@ -1,5 +1,7 @@
 2007-08-06  Chris Dunlap  <cdunlap@llnl.gov>
 
+	* THANKS: Added.
+
 	* README, conman.spec: Tweaked description.
 
 	* Makefile.in, configure.ac, etc/conman.conf, man/conman.conf.5.in,
