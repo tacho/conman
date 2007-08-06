@@ -256,16 +256,16 @@ if test "$freeipmi" != no; then
     AC_DEFINE_UNQUOTED(WITH_FREEIPMI, 1,
       [Define if using FreeIPMI's libipmiconsole.])
     freeipmi=yes
-    SOBJS="server-ipmi.o $SOBJS"
-    SLIBS="-lipmiconsole $SLIBS"
+    IPMI_OBJS="server-ipmi.o"
+    IPMI_LIBS="-lipmiconsole"
   else
     freeipmi=no
   fi
 fi
 AC_MSG_CHECKING(whether to use FreeIPMI's libipmiconsole)
 AC_MSG_RESULT(${freeipmi=no})
-AC_SUBST(SOBJS)
-AC_SUBST(SLIBS)
+AC_SUBST(IPMI_OBJS)
+AC_SUBST(IPMI_LIBS)
 
 
 dnl Check for ConMan daemon conf file.

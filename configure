@@ -678,8 +678,8 @@ CPP
 GREP
 EGREP
 LIBOBJS
-SOBJS
-SLIBS
+IPMI_OBJS
+IPMI_LIBS
 CONMAN_CONF
 CONMAN_HOST
 CONMAN_PORT
@@ -5156,8 +5156,8 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
     freeipmi=yes
-    SOBJS="server-ipmi.o $SOBJS"
-    SLIBS="-lipmiconsole $SLIBS"
+    IPMI_OBJS="server-ipmi.o"
+    IPMI_LIBS="-lipmiconsole"
   else
     freeipmi=no
   fi
@@ -5946,8 +5946,8 @@ CPP!$CPP$ac_delim
 GREP!$GREP$ac_delim
 EGREP!$EGREP$ac_delim
 LIBOBJS!$LIBOBJS$ac_delim
-SOBJS!$SOBJS$ac_delim
-SLIBS!$SLIBS$ac_delim
+IPMI_OBJS!$IPMI_OBJS$ac_delim
+IPMI_LIBS!$IPMI_LIBS$ac_delim
 CONMAN_CONF!$CONMAN_CONF$ac_delim
 CONMAN_HOST!$CONMAN_HOST$ac_delim
 CONMAN_PORT!$CONMAN_PORT$ac_delim

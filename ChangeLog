@@ -1,5 +1,8 @@
 2007-08-06  Chris Dunlap  <cdunlap@llnl.gov>
 
+	* configure.ac, Makefile.in:
+	  Changed SOBJS to IPMI_OBJS, SLIBS to IPMI_LIBS.
+
 	* THANKS: Added.
 
 	* README, conman.spec: Tweaked description.

@@ -14,8 +14,8 @@ CFLAGS=		@CFLAGS@
 CPPFLAGS=	@CPPFLAGS@
 LDFLAGS=	@LDFLAGS@
 LIBS=		@LIBS@
-SLIBS=		@SLIBS@
-SOBJS=		@SOBJS@
+IPMI_OBJS=	@IPMI_OBJS@
+IPMI_LIBS=	@IPMI_LIBS@
 RANLIB=		@RANLIB@
 INSTALL=	@INSTALL@
 @SET_MAKE@
@@ -42,11 +42,11 @@ CLIENT_OBJS1=	client.o client-conf.o client-sock.o client-tty.o
 CLIENT_OBJS=	$(CLIENT_OBJS1) $(COMMON_OBJS)
 SERVER_OBJS1=	server.o server-conf.o server-esc.o server-logfile.o
 SERVER_OBJS2=	server-obj.o server-process.o server-serial.o server-sock.o
-SERVER_OBJS3=	server-telnet.c tpoll.o $(SOBJS)
+SERVER_OBJS3=	server-telnet.c tpoll.o $(IPMI_OBJS)
 SERVER_OBJS=	$(SERVER_OBJS1) $(SERVER_OBJS2) $(SERVER_OBJS3) $(COMMON_OBJS)
 COMMON_LIBS=	-lpthread $(LIBS)
 CLIENT_LIBS=	$(COMMON_LIBS)
-SERVER_LIBS=	$(COMMON_LIBS) $(SLIBS)
+SERVER_LIBS=	$(COMMON_LIBS) $(IPMI_LIBS)
 
 all: $(PROGS) tags
 
