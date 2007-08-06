@@ -240,7 +240,7 @@ AC_MSG_RESULT(${tcp_wrappers=no})
 dnl Check for FreeIPMI libraries
 dnl
 AC_ARG_WITH(freeipmi,
-  AC_HELP_STRING([--with-freeipmi], [use FreeIPMI's libipmiconsole]),
+  AC_HELP_STRING([--with-freeipmi], [use FreeIPMI's Serial-Over-LAN console]),
   [ case "$withval" in
       yes) freeipmi=yes ;;
       no)  freeipmi=no ;;

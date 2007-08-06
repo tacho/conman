@@ -1273,7 +1273,7 @@ Optional Packages:
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
   --with-dmalloc          use Gray Watson's dmalloc library
   --with-tcp-wrappers     use Wietse Venema's TCP Wrappers
-  --with-freeipmi         use FreeIPMI's libipmiconsole
+  --with-freeipmi         use FreeIPMI's Serial-Over-LAN console
   --with-conman-host=HOST default host name of daemon [127.0.0.1]
   --with-conman-port=PORT default port number of daemon [7890]
 

@@ -1,5 +1,7 @@
 2007-08-06  Chris Dunlap  <cdunlap@llnl.gov>
 
+	* configure.ac: Tweaked "--with-freeipmi" help string.
+
 	* server.h: Changed #defines for is_ipmi_obj and is_console_obj.
 
 	* configure.ac, Makefile.in:
