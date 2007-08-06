@@ -1,5 +1,7 @@
 2007-08-06  Chris Dunlap  <cdunlap@llnl.gov>
 
+	* README, conman.spec: Tweaked description.
+
 	* Makefile.in, configure.ac, etc/conman.conf, man/conman.conf.5.in,
 	  server-conf.c, server-esc.c, server-ipmi.c, server-logfile.c,
 	  server-obj.c, server-sock.c, server.c, server.h:

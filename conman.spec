@@ -15,12 +15,13 @@ BuildRoot:	%{_tmppath}/%{name}-%{version}
 Source0:	%{name}-%{version}.tar
 
 %description
-ConMan is a serial console management program designed to support a large
-number of console devices and simultaneous users.  It supports local serial
-devices, remote terminal servers (via the telnet protocol), and external
-processes (e.g., using Expect to control connections over telnet, ssh, or
-ipmi-sol).  Its features include:
+ConMan is a serial console management program designed to support a
+large number of console devices and simultaneous users.  It supports local
+serial devices, remote terminal servers (via the telnet protocol), external
+processes (e.g., using Expect to control connections over telnet or ssh),
+and IPMI Serial-Over-LAN.
 
+Its features include:
   - logging (and optionally timestamping) console device output to file
   - connecting to consoles in monitor (R/O) or interactive (R/W) mode
   - allowing clients to share or steal console write privileges
@@ -64,6 +65,7 @@ fi
 %doc FAQ
 %doc NEWS
 %doc README
+%doc THANKS
 %config(noreplace) %{_sysconfdir}/conman.conf
 %config(noreplace) %{_sysconfdir}/*/*
 %{_bindir}/*
