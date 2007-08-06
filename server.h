@@ -286,13 +286,16 @@ typedef struct client_args {
 #define is_telnet_obj(OBJ)   (OBJ->type == CONMAN_OBJ_TELNET)
 #ifdef WITH_FREEIPMI
 #define is_ipmi_obj(OBJ)     (OBJ->type == CONMAN_OBJ_IPMI)
-#define is_console_obj(OBJ)  \
-    (is_process_obj(OBJ) || is_serial_obj(OBJ) || \
-     is_telnet_obj(OBJ) || is_ipmi_obj(OBJ))
 #else /* !WITH_FREEIPMI */
-#define is_console_obj(OBJ) \
-    (is_process_obj(OBJ) || is_serial_obj(OBJ) || is_telnet_obj(OBJ))
+#define is_ipmi_obj(OBJ)     (0)
 #endif /* WITH_FREEIPMI */
+
+#define is_console_obj(OBJ) \
+    (   is_process_obj(OBJ) \
+    ||  is_serial_obj(OBJ) \
+    ||  is_telnet_obj(OBJ) \
+    ||  is_ipmi_obj(OBJ) \
+    )
 
 
 /*  server-conf.c
@@ -399,6 +402,7 @@ int process_telnet_escapes(obj_t *telnet, void *src, int len);
 
 int send_telnet_cmd(obj_t *telnet, int cmd, int opt);
 
+
 /* server-ipmi.c
  */
 #ifdef WITH_FREEIPMI
@@ -418,5 +422,6 @@ int open_ipmi_obj(obj_t *ipmi);
 int send_ipmi_break(obj_t *ipmi);
 
 #endif /* WITH_FREEIPMI */
+
 
 #endif /* !_SERVER_H */
