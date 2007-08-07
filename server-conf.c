@@ -702,6 +702,7 @@ static void parse_console_directive(server_conf_t *conf, Lex l)
                 replace_string(&con.sopts, lex_text(l));
             }
             break;
+
 #ifdef WITH_FREEIPMI
         case SERVER_CONF_IPMIOPTS:
             if (lex_next(l) != '=') {
@@ -718,6 +719,7 @@ static void parse_console_directive(server_conf_t *conf, Lex l)
             }
             break;
 #endif /* WITH_FREEIPMI */
+
         case LEX_EOF:
         case LEX_EOL:
             done = 1;
@@ -1173,6 +1175,7 @@ static void parse_global_directive(server_conf_t *conf, Lex l)
                     err, sizeof(err));
             }
             break;
+
 #ifdef WITH_FREEIPMI
         case SERVER_CONF_IPMIOPTS:
             if (lex_next(l) != '=') {
@@ -1190,6 +1193,7 @@ static void parse_global_directive(server_conf_t *conf, Lex l)
             }
             break;
 #endif /* WITH_FREEIPMI */
+
         case LEX_EOF:
         case LEX_EOL:
             done = 1;
