@@ -259,7 +259,8 @@ server_conf_t * create_server_conf(void)
 #ifdef WITH_FREEIPMI
     conf->globalIpmiOpts.username = NULL;
     conf->globalIpmiOpts.password = NULL;
-    memset(conf->globalIpmiOpts.k_g, 0, IPMI_K_G_MAX);
+    memset(conf->globalIpmiOpts.k_g, 0, sizeof(conf->globalIpmiOpts.k_g));
+    conf->numIpmiObjs = 0;
 #endif /* WITH_FREEIPMI */
     conf->enableKeepAlive = 1;
     conf->enableLoopBack = 0;
@@ -584,8 +585,9 @@ static void signal_daemon(server_conf_t *conf)
             conf->confFileName, (int) pid, msg, conf->throwSignal);
     }
 #ifdef WITH_FREEIPMI
-    ipmi_teardown();
+    ipmi_fini();
 #endif /* WITH_FREEIPMI */
+
     destroy_server_conf(conf);
     exit(0);
 }

@@ -1,5 +1,13 @@
 2007-08-07  Chris Dunlap  <cdunlap@llnl.gov>
 
+	* server.h: Added numIpmiObjs to struct server_conf.
+	  Replaced IPMI_ENGINE_THREADS with IPMI_ENGINE_CONSOLES_PER_THREAD.
+	  Renamed ipmi_setup() to ipmi_init(), ipmi_teardown() to ipmi_fini().
+	* server.c, server-conf.c, server-obj.c:
+	  Moved ipmi_init() & ipmi_fini() to server.c:main().
+	* server-ipmi.c (ipmi_init):
+	  Added num_consoles parm for computing number of ipmi engine threads.
+
 	* common.h: Added FEATURE_FREEIPMI to SERVER_FEATURES.
 
 2007-08-06  Chris Dunlap  <cdunlap@llnl.gov>

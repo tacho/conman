@@ -35,6 +35,7 @@
 #include <unistd.h>
 #include "common.h"
 #include "list.h"
+#include "log.h"
 #include "server.h"
 #include "tpoll.h"
 #include "util-str.h"
@@ -47,21 +48,42 @@ static int connect_ipmi_obj(obj_t *ipmi);
 static void disconnect_ipmi_obj(obj_t *ipmi);
 
 
-void ipmi_setup(void)
+void ipmi_init(int num_consoles)
 {
-    if (ipmi_engine_started == 0) {
-        ipmiconsole_engine_init(IPMI_ENGINE_THREADS, 0);
-        ipmi_engine_started = 1;
+/*  Starts the ipmiconsole engine to handle [num_consoles] IPMI SOL consoles.
+ */
+    int num_threads;
+
+    if (num_consoles <= 0) {
+        return;
     }
+    if (ipmi_engine_started) {
+        return;
+    }
+    num_threads = ((num_consoles - 1) / IPMI_ENGINE_CONSOLES_PER_THREAD) + 1;
+
+    if (ipmiconsole_engine_init(num_threads, 0) < 0) {
+        log_err(0, "Unable to start IPMI engine");
+    }
+    else {
+        log_msg(LOG_INFO,
+            "IPMI engine started with %d thread%s for %d console%s",
+            num_threads, (num_threads == 1) ? "" : "s",
+            num_consoles, (num_consoles == 1) ? "" : "s");
+    }
+    ipmi_engine_started = 1;
+    return;
 }
 
 
-void ipmi_teardown(void)
+void ipmi_fini(void)
 {
-    if (ipmi_engine_started == 1) {
-        ipmiconsole_engine_teardown();
-        ipmi_engine_started = 0;
+    if (!ipmi_engine_started) {
+        return;
     }
+    ipmiconsole_engine_teardown();
+    ipmi_engine_started = 0;
+    return;
 }
 
 
@@ -289,6 +311,7 @@ obj_t * create_ipmi_obj(server_conf_t *conf, char *name,
     ipmi->aux.ipmi.ctx = NULL;
     ipmi->aux.ipmi.logfile = NULL;
     ipmi->aux.ipmi.state = CONMAN_IPMI_DOWN;
+    conf->numIpmiObjs++;
     /*
      *  Add obj to the master conf->objs list.
      */

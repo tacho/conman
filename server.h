@@ -64,7 +64,7 @@
 #define IPMI_K_G_MAX                    20
 #define IPMI_USERNAME_MAX               16
 #define IPMI_PASSWORD_MAX               20
-#define IPMI_ENGINE_THREADS             5
+#define IPMI_ENGINE_CONSOLES_PER_THREAD 64
 #define IPMI_STATUS_CHECK_TIMEOUT       5       /* seconds */
 #define IPMI_CONNECT_RETRY_TIMEOUT      30      /* seconds */
 #endif /* WITH_FREEIPMI */
@@ -228,6 +228,7 @@ typedef struct server_conf {
     seropt_t         globalSerOpts;     /* global opts for serial objects    */
 #ifdef WITH_FREEIPMI
     ipmiopt_t        globalIpmiOpts;    /* global opts for ipmi objects      */
+    int              numIpmiObjs;       /* number of ipmi consoles in config */
 #endif /* WITH_FREEIPMI */
     unsigned         enableKeepAlive:1; /* true if using TCP keep-alive      */
     unsigned         enableLoopBack:1;  /* true if only listening on loopback*/
@@ -407,9 +408,9 @@ int send_telnet_cmd(obj_t *telnet, int cmd, int opt);
  */
 #ifdef WITH_FREEIPMI
 
-void ipmi_setup(void);
+void ipmi_init(int num_consoles);
 
-void ipmi_teardown(void);
+void ipmi_fini(void);
 
 int parse_ipmi_opts(
     ipmiopt_t *iopts, const char *str, char *errbuf, int errlen);

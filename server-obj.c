@@ -261,7 +261,6 @@ void reopen_obj(obj_t *obj)
     }
 #ifdef WITH_FREEIPMI
     else if (is_ipmi_obj(obj)) {
-        ipmi_setup();
         open_ipmi_obj(obj);
     }
 #endif /* WITH_FREEIPMI */
