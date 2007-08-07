@@ -1,3 +1,7 @@
+2007-08-07  Chris Dunlap  <cdunlap@llnl.gov>
+
+	* common.h: Added FEATURE_FREEIPMI to SERVER_FEATURES.
+
 2007-08-06  Chris Dunlap  <cdunlap@llnl.gov>
 
 	* configure.ac: Tweaked "--with-freeipmi" help string.
