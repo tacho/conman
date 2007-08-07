@@ -1,5 +1,8 @@
 2007-08-07  Chris Dunlap  <cdunlap@llnl.gov>
 
+	* etc/conman.conf, man/conman.conf.5.in:
+	  Documented config format for IPMI SOL console device.
+
 	* server.h: Added numIpmiObjs to struct server_conf.
 	  Replaced IPMI_ENGINE_THREADS with IPMI_ENGINE_CONSOLES_PER_THREAD.
 	  Renamed ipmi_setup() to ipmi_init(), ipmi_teardown() to ipmi_fini().
