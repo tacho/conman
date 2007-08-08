@@ -1,5 +1,10 @@
 2007-08-07  Chris Dunlap  <cdunlap@llnl.gov>
 
+	* server-conf.c (is_ipmi_dev):
+	  Made string comparison of "ipmi:" device prefix case-insensitive.
+	* configure.ac: Added function check for strncasecmp().
+	* util-str.c, util-str.h: Added conditional strncasecmp().
+
 	* etc/conman.conf, man/conman.conf.5.in:
 	  Documented config format for IPMI SOL console device.
 

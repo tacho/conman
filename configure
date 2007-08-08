@@ -3793,7 +3793,9 @@ done
 
 
 
-for ac_header in paths.h
+for ac_header in \
+  paths.h \
+
 do
 as_ac_Header=`echo "ac_cv_header_$ac_header" | $as_tr_sh`
 if { as_var=$as_ac_Header; eval "test \"\${$as_var+set}\" = set"; }; then
@@ -4244,12 +4246,14 @@ esac
 
 
 
+
 for ac_func in \
   inet_aton \
   inet_ntop \
   inet_pton \
   localtime_r \
   strcasecmp \
+  strncasecmp \
 
 do
 as_ac_var=`echo "ac_cv_func_$ac_func" | $as_tr_sh`

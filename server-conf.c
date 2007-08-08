@@ -963,7 +963,7 @@ static int is_ipmi_dev(const char *dev, char **host_ref)
     if (strlcpy(buf, dev, sizeof(buf)) >= sizeof(buf)) {
         return(0);
     }
-    if (strncmp(buf, "ipmi:", 5) != 0) {
+    if (strncasecmp(buf, "ipmi:", 5) != 0) {
         return(0);
     }
     p = buf + 5;

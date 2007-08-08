@@ -89,7 +89,9 @@ fi
 
 dnl Check for header files.
 dnl
-AC_CHECK_HEADERS(paths.h)
+AC_CHECK_HEADERS( \
+  paths.h \
+)
 
 
 dnl Check for typedefs.
@@ -114,6 +116,7 @@ AC_CHECK_FUNCS( \
   inet_pton \
   localtime_r \
   strcasecmp \
+  strncasecmp \
 )
 AC_REPLACE_FUNCS( \
   strlcat \
