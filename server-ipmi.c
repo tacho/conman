@@ -87,45 +87,49 @@ void ipmi_fini(void)
 }
 
 
-static int parse_kg(unsigned char *outbuf, int outsz, const char *instr)
+static int parse_kg(unsigned char *outbuf, size_t outsz, const char *instr)
 {
-/*  A k_g key is interpreted as ascii text unless it is prefixed with "0x",
- *    in which case is it interpreted as hexadecimal.
+/*  Parses the BMC K_g key 'instr', writing the result into buffer 'outbuf'
+ *    of length 'outsz'.  The 'outbuf' will always be NUL-terminated.
+ *  The 'instr' key is interpreted as ASCII text unless it is prefixed with
+ *    "0x" or "0X", in which case it is interpreted as hexadecimal digits.
+ *  Returns the length of the key (in bytes) written to 'outbuf'
+ *    (not including the final NUL-termination character).
+ *  Note that a hexadecimal key may contain NUL characters.
  */
-    char *p, *q;
-    int i, j;
-    char buf[3] = {0, 0, 0};
+    const char *hexdigits = "0123456789ABCDEFabcdef";
+    char       *p;
+    char       *q;
+    char       *outend;
+    int         outlen;
 
     assert(outbuf != NULL);
     assert(instr != NULL);
-    assert(outsz == IPMI_K_G_MAX);
 
-    if (strlen(instr) == 0)
-        return(0);
-
-    if (strncmp(instr, "0x", 2) == 0) {
-        if (strlen(instr) > IPMI_K_G_MAX*2+2)
-            return(-1);
-        p = (char *)instr + 2;
-        memset(outbuf, 0, IPMI_K_G_MAX);
-        for (i = j = 0; i < strlen(p); i+=2, j++) {
-            if (p[i+1] == '\0')
-                return(-1);
-            buf[0] = p[i]; buf[1] = p[i+1]; buf[2] = 0;
-            errno = 0;
-            outbuf[j] = strtoul(buf, &q, 16);
-            if (errno || (q != buf + 2))
-                return(-1);
+    if ((instr[0] == '0') && (instr[1] == 'x' || instr[1] == 'X')
+            && (strspn(instr + 2, hexdigits) == strlen(instr + 2))) {
+        p = (char *) instr + 2;
+        q = outbuf;
+        outend = outbuf + outsz - 1;    /* reserve space for terminating NUL */
+        outlen = 0;
+        while (*p && (q < outend)) {
+            if (((p - instr) & 0x01) == 0) {
+                *q = (toint(*p) << 4) & 0xf0;
+                outlen++;
+            }
+            else {
+                *q++ |= (toint(*p)) & 0x0f;
+            }
+            p++;
         }
+        outbuf[outlen] = '\0';
     }
     else {
-        if (strlen(instr) > IPMI_K_G_MAX)
-            return(-1);
-        memset(outbuf, 0, IPMI_K_G_MAX);
-        memcpy(outbuf, instr, strlen(instr));
+        (void) strlcpy(outbuf, instr, outsz);
+        outlen = strlen(outbuf);
     }
-
-    return(1);
+    assert(outlen < outsz);
+    return(outlen);
 }
 
 
