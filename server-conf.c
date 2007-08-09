@@ -955,18 +955,14 @@ static int is_telnet_dev(const char *dev, char **host_ref, int *port_ref)
 #ifdef WITH_FREEIPMI
 static int is_ipmi_dev(const char *dev, char **host_ref)
 {
-    char  buf[MAX_LINE];
     char *p;
 
     assert(dev != NULL);
 
-    if (strlcpy(buf, dev, sizeof(buf)) >= sizeof(buf)) {
+    if (strncasecmp(dev, "ipmi:", 5) != 0) {
         return(0);
     }
-    if (strncasecmp(buf, "ipmi:", 5) != 0) {
-        return(0);
-    }
-    p = buf + 5;
+    p = dev + 5;
     if (p == '\0') {
         return(0);
     }

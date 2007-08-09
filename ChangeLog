@@ -1,5 +1,7 @@
 2007-08-08  Chris Dunlap  <cdunlap@llnl.gov>
 
+	* server-conf.c (is_ipmi_dev): Removed unnecessary strlcpy().
+
 	* configure.ac: Added function check for toint().
 	* util-str.c, util-str.h: Added conditional toint().
 
