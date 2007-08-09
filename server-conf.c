@@ -962,7 +962,7 @@ static int is_ipmi_dev(const char *dev, char **host_ref)
     if (strncasecmp(dev, "ipmi:", 5) != 0) {
         return(0);
     }
-    p = dev + 5;
+    p = (char *) dev + 5;
     if (p == '\0') {
         return(0);
     }
