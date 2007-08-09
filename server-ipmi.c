@@ -99,7 +99,8 @@ static int parse_kg(unsigned char *outbuf, size_t outsz, const char *instr)
  *    A hexadecimal string will be converted to binary and may contain
  *    embedded NUL characters.
  *  Returns the length of the key (in bytes) written to 'outbuf'
- *    (not including the final NUL-termination character).
+ *    (not including the final NUL-termination character),
+ *    or -1 if truncation occurred.
  */
     const char *hexdigits = "0123456789ABCDEFabcdef";
     char       *p;
@@ -118,18 +119,22 @@ static int parse_kg(unsigned char *outbuf, size_t outsz, const char *instr)
         outlen = 0;
         while (*p && (q < outend)) {
             if (((p - instr) & 0x01) == 0) {
-                *q = (toint(*p) << 4) & 0xf0;
+                *q = (toint(*p++) << 4) & 0xf0;
                 outlen++;
             }
             else {
-                *q++ |= (toint(*p)) & 0x0f;
+                *q++ |= (toint(*p++)) & 0x0f;
             }
-            p++;
         }
         outbuf[outlen] = '\0';
+        if (*p) {
+            return(-1);
+        }
     }
     else {
-        (void) strlcpy(outbuf, instr, outsz);
+        if (strlcpy(outbuf, instr, outsz) >= outsz) {
+            return(-1);
+        }
         outlen = strlen(outbuf);
     }
     assert(outlen < outsz);
