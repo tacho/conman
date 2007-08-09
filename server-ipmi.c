@@ -129,67 +129,6 @@ static int parse_kg(unsigned char *outbuf, int outsz, const char *instr)
 }
 
 
-static char *format_kg(char *outstr, int outsz, const unsigned char *k_g)
-{
-    int i;
-    int printable = 1;
-    int foundnull = 0;
-    char *p;
-
-    assert(outstr != NULL);
-    assert(outsz > IPMI_K_G_MAX*2+2);
-    assert(k_g != NULL);
-
-    /*  Are there any characters that would prevent printing this as a string
-     *    on a single line?
-     */
-    for (i = 0; i < IPMI_K_G_MAX; i++) {
-        if (k_g[i] == '\0') {
-            ++foundnull;
-            continue;
-        }
-        if (!(isgraph(k_g[i]) || k_g[i] == ' ') || foundnull) {
-            printable = 0;
-            break;
-        }
-    }
-
-    /*  Print out an entirely null key in hex rather than an empty string.
-     */
-    if (foundnull == IPMI_K_G_MAX)
-        printable = 0;
-
-    /*  Don't print out a key starting with a literal '0x' as a string
-     *    since parse_kg will try to interpret such strings as hex.
-     */
-    if (k_g[0] == '0' && k_g[1] == 'x')
-        printable = 0;
-
-    if (printable) {
-        if (outsz < IPMI_K_G_MAX+1)
-            return(NULL);
-        p = outstr;
-        for (i = 0; i < IPMI_K_G_MAX; i++) {
-            if (k_g[i] == '\0')
-                break;
-            p[i] = k_g[i];
-        }
-        p[i] = 0;
-    }
-    else {
-        if (outsz < IPMI_K_G_MAX*2+3)
-            return(NULL);
-        p = outstr;
-        p[0] = '0'; p[1] = 'x';
-        p += 2;
-        for (i = 0; i < IPMI_K_G_MAX; i++, p+=2)
-            sprintf(p, "%02x", k_g[i]);
-    }
-
-    return(outstr);
-}
-
-
 int parse_ipmi_opts(
     ipmiopt_t *iopts, const char *str, char *errbuf, int errlen)
 {
