@@ -1,5 +1,7 @@
 2007-08-09  Chris Dunlap  <cdunlap@llnl.gov>
 
+	* server-ipmi.c: Updated static prototypes.
+
 	* server-ipmi.c (parse_kg): Rewrote.
 
 	* server-ipmi.c (format_kg): Removed since it was not used.

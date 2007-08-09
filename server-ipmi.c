@@ -41,9 +41,11 @@
 #include "util-str.h"
 
 
-extern tpoll_t tp_global;		/* defined in server.c */
+extern tpoll_t tp_global;               /* defined in server.c */
 static int ipmi_engine_started = 0;
 
+static int parse_kg(unsigned char *outbuf, size_t outsz, const char *instr);
+static int new_ipmi_ctx(obj_t *ipmi);
 static int connect_ipmi_obj(obj_t *ipmi);
 static void disconnect_ipmi_obj(obj_t *ipmi);
 
@@ -264,7 +266,7 @@ obj_t * create_ipmi_obj(server_conf_t *conf, char *name,
 }
 
 
-int new_ipmi_ctx(obj_t *ipmi)
+static int new_ipmi_ctx(obj_t *ipmi)
 {
 /*  Returns 0 if the IPMI ctx is sucessfully created; o/w, returns -1.
  */
