@@ -91,13 +91,15 @@ void ipmi_fini(void)
 
 static int parse_kg(unsigned char *outbuf, size_t outsz, const char *instr)
 {
-/*  Parses the BMC K_g key 'instr', writing the result into buffer 'outbuf'
- *    of length 'outsz'.  The 'outbuf' will always be NUL-terminated.
- *  The 'instr' key is interpreted as ASCII text unless it is prefixed with
- *    "0x" or "0X", in which case it is interpreted as hexadecimal digits.
+/*  Parses the NUL-terminated BMC K_g key string 'instr', writing the result
+ *    into buffer 'outbuf' of length 'outsz'.  The 'outbuf' will always be
+ *    NUL-terminated.
+ *  The 'instr' is interpreted as ASCII text unless it is prefixed with
+ *    "0x" or "0X" and contains only hexadecimal digits (ie, [0-9A-Fa-f]).
+ *    A hexadecimal string will be converted to binary and may contain
+ *    embedded NUL characters.
  *  Returns the length of the key (in bytes) written to 'outbuf'
  *    (not including the final NUL-termination character).
- *  Note that a hexadecimal key may contain NUL characters.
  */
     const char *hexdigits = "0123456789ABCDEFabcdef";
     char       *p;

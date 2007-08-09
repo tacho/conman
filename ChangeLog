@@ -1,5 +1,7 @@
 2007-08-09  Chris Dunlap  <cdunlap@llnl.gov>
 
+	* server-ipmi.c (parse_kg): Tweaked documentation.
+
 	* server-ipmi.c: Updated static prototypes.
 
 	* server-ipmi.c (parse_kg): Rewrote.
