@@ -4247,6 +4247,7 @@ esac
 
 
 
+
 for ac_func in \
   inet_aton \
   inet_ntop \
@@ -4254,6 +4255,7 @@ for ac_func in \
   localtime_r \
   strcasecmp \
   strncasecmp \
+  toint \
 
 do
 as_ac_var=`echo "ac_cv_func_$ac_func" | $as_tr_sh`

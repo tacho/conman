@@ -1,3 +1,8 @@
+2007-08-08  Chris Dunlap  <cdunlap@llnl.gov>
+
+	* configure.ac: Added function check for toint().
+	* util-str.c, util-str.h: Added conditional toint().
+
 2007-08-07  Chris Dunlap  <cdunlap@llnl.gov>
 
 	* server-conf.c (is_ipmi_dev):

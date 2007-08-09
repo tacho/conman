@@ -117,6 +117,7 @@ AC_CHECK_FUNCS( \
   localtime_r \
   strcasecmp \
   strncasecmp \
+  toint \
 )
 AC_REPLACE_FUNCS( \
   strlcat \

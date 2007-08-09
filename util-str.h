@@ -185,5 +185,12 @@ size_t strlcpy(char *dst, const char *src, size_t siz);
  */
 #endif /* !HAVE_STRLCPY */
 
+#ifndef HAVE_TOINT
+int toint(int c);
+/*
+ *  Returns the "weight" (0-15) of a hexadecimal digit 'c'.
+ */
+#endif /* !HAVE_TOINT */
+
 
 #endif /* !_UTIL_STR_H */
