@@ -28,6 +28,7 @@
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
+#include <freeipmi/ipmi-messaging-support-cmds.h>
 #include <ipmiconsole.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,14 +46,14 @@ extern tpoll_t tp_global;               /* defined in server.c */
 static int ipmi_engine_started = 0;
 
 static int parse_kg(unsigned char *outbuf, size_t outsz, const char *instr);
-static int new_ipmi_ctx(obj_t *ipmi);
+static int create_ipmi_ctx(obj_t *ipmi);
 static int connect_ipmi_obj(obj_t *ipmi);
 static void disconnect_ipmi_obj(obj_t *ipmi);
 
 
 void ipmi_init(int num_consoles)
 {
-/*  Starts the ipmiconsole engine to handle [num_consoles] IPMI SOL consoles.
+/*  Starts the ipmiconsole engine to handle 'num_consoles' IPMI SOL consoles.
  */
     int num_threads;
 
@@ -80,6 +81,8 @@ void ipmi_init(int num_consoles)
 
 void ipmi_fini(void)
 {
+/*  Stops the ipmiconsole engine.
+ */
     if (!ipmi_engine_started) {
         return;
     }
@@ -155,72 +158,79 @@ int parse_ipmi_opts(
     char buf[MAX_LINE];
     const char * const separators = ",";
     char *tok;
+    int n;
 
     assert(iopts != NULL);
 
-    memset(&ioptsTmp, 0, sizeof(ipmiopt_t));
+    memset(&ioptsTmp, 0, sizeof(ioptsTmp));
 
     if ((str == NULL) || str[0] == '\0') {
-        if ((errbuf != NULL) && (errlen > 0))
-            snprintf(errbuf, errlen, "encountered empty options string");
+        if ((errbuf != NULL) && (errlen > 0)) {
+            snprintf(errbuf, errlen,
+                "encountered empty options string");
+        }
         return(-1);
     }
 
     if (strlcpy(buf, str, sizeof(buf)) >= sizeof(buf)) {
-        if ((errbuf != NULL) && (errlen > 0))
-            snprintf(errbuf, errlen, "ipmiopt string exceeded buffer size");
+        if ((errbuf != NULL) && (errlen > 0)) {
+            snprintf(errbuf, errlen,
+                "ipmiopt string exceeded buffer size");
+        }
         return(-1);
     }
 
-    tok = strtok(buf, separators);
-    if (tok == NULL) {
-        if ((errbuf != NULL) && (errlen > 0))
-            snprintf(errbuf, errlen, "ipmiopt username not specified");
-        return(-1);
-    }
-    if (strlen(tok) > IPMI_USERNAME_MAX) {
-        if ((errbuf != NULL) && (errlen > 0))
-            snprintf(errbuf, errlen, "ipmiopt username exceeds max length");
-        return(-1);
-    }
-
-    ioptsTmp.username = strdup(tok);
-
-    tok = strtok(NULL, separators);
-    if (tok == NULL) {
-        if ((errbuf != NULL) && (errlen > 0))
-            snprintf(errbuf, errlen, "ipmiopt password not specified");
-        goto cleanup;
-    }
-    if (strlen(tok) > IPMI_PASSWORD_MAX) {
-        if ((errbuf != NULL) && (errlen > 0))
-            snprintf(errbuf, errlen, "ipmiopt password exceeds max length");
-        goto cleanup;
-    }
-
-    ioptsTmp.password = strdup(tok);
-
-    tok = strtok(NULL, separators);
-    if (tok == NULL) {
-        memcpy(ioptsTmp.k_g, iopts->k_g, IPMI_K_G_MAX);
-    }
-    else {
-        if (parse_kg(ioptsTmp.k_g, IPMI_K_G_MAX, tok) < 0) {
-            if ((errbuf != NULL && (errlen > 0)))
-                snprintf(errbuf, errlen, "ipmiopt k_g is invalid");
-            goto cleanup;
+    if ((tok = strtok(buf, separators))) {
+        n = strlcpy(ioptsTmp.username, tok, sizeof(ioptsTmp.username));
+        if (n >= sizeof(ioptsTmp.username)) {
+            if ((errbuf != NULL) && (errlen > 0)) {
+                snprintf(errbuf, errlen,
+                    "ipmiopt username exceeds %d-byte max length",
+                    IPMI_MAX_USER_NAME_LENGTH);
+            }
+            return(-1);
         }
     }
+    if ((tok = strtok(NULL, separators))) {
+        n = strlcpy(ioptsTmp.password, tok, sizeof(ioptsTmp.password));
+        if (n >= sizeof(ioptsTmp.password)) {
+            if ((errbuf != NULL) && (errlen > 0)) {
+                snprintf(errbuf, errlen,
+                    "ipmiopt password exceeds %d-byte max length",
+                    IPMI_2_0_MAX_PASSWORD_LENGTH);
+            }
+            return(-1);
+        }
+    }
+    if ((tok = strtok(NULL, separators))) {
+        n = parse_kg(ioptsTmp.kg, sizeof(ioptsTmp.kg), tok);
+        if (n < 0) {
+            if ((errbuf != NULL) && (errlen > 0)) {
+                snprintf(errbuf, errlen,
+                    "ipmiopt k_g exceeds %d-byte max length",
+                    IPMI_MAX_K_G_LENGTH);
+            }
+            return(-1);
+        }
+        ioptsTmp.kgLen = n;
+    }
 
+    if (ioptsTmp.username[0] == '\0') {
+        if ((errbuf != NULL) && (errlen > 0)) {
+            snprintf(errbuf, errlen,
+                "ipmiopt username not specified");
+        }
+        return(-1);
+    }
+    if (ioptsTmp.password[0] == '\0') {
+        if ((errbuf != NULL) && (errlen > 0)) {
+            snprintf(errbuf, errlen,
+                "ipmiopt password not specified");
+        }
+        return(-1);
+    }
     *iopts = ioptsTmp;
     return(0);
-
- cleanup:
-    if (ioptsTmp.username)
-        free(ioptsTmp.username);
-    if (ioptsTmp.password)
-        free(ioptsTmp.password);
-    return(-1);
 }
 
 
@@ -263,6 +273,7 @@ obj_t * create_ipmi_obj(server_conf_t *conf, char *name,
     ipmi->aux.ipmi.ctx = NULL;
     ipmi->aux.ipmi.logfile = NULL;
     ipmi->aux.ipmi.state = CONMAN_IPMI_DOWN;
+    ipmi->aux.ipmi.timer = -1;
     conf->numIpmiObjs++;
     /*
      *  Add obj to the master conf->objs list.
@@ -273,49 +284,51 @@ obj_t * create_ipmi_obj(server_conf_t *conf, char *name,
 }
 
 
-static int new_ipmi_ctx(obj_t *ipmi)
+static int create_ipmi_ctx(obj_t *ipmi)
 {
 /*  Returns 0 if the IPMI ctx is sucessfully created; o/w, returns -1.
  */
     struct ipmiconsole_ipmi_config ipmi_config;
     struct ipmiconsole_protocol_config protocol_config;
+    int n;
 
     assert(ipmi != NULL);
     assert(is_ipmi_obj(ipmi));
 
-    /*  Create the ctx object if it doesn't already exist.
+    /*  Only create a ctx object if one doesn't already exist.
      */
-    if (ipmi->aux.ipmi.ctx == NULL) {
-        /*
-         *  Setup configuration structs for the ctx creation.
-         */
-        ipmi_config.username = ipmi->aux.ipmi.iconf.username;
-        ipmi_config.password = ipmi->aux.ipmi.iconf.password;
-        ipmi_config.k_g = malloc(IPMI_K_G_MAX);
-        memcpy(ipmi_config.k_g, ipmi->aux.ipmi.iconf.k_g, IPMI_K_G_MAX);
-
-        ipmi_config.k_g_len = IPMI_K_G_MAX;
-        ipmi_config.privilege_level = -1;
-        ipmi_config.cipher_suite_id = -1;
-
-        protocol_config.session_timeout_len = -1;
-        protocol_config.retransmission_timeout_len = -1;
-        protocol_config.retransmission_backoff_count = -1;
-        protocol_config.keepalive_timeout_len = -1;
-        protocol_config.retransmission_keepalive_timeout_len = -1;
-        protocol_config.acceptable_packet_errors_count = -1;
-        protocol_config.maximum_retransmission_count = -1;
-        protocol_config.debug_flags = 0;
-        protocol_config.security_flags = 0;
-        protocol_config.workaround_flags = 0;
-
-        ipmi->aux.ipmi.ctx = ipmiconsole_ctx_create(ipmi->aux.ipmi.hostname,
-            &ipmi_config, &protocol_config);
-        if (!ipmi->aux.ipmi.ctx)
-            return(-1);
-
-        ipmi->aux.ipmi.state = CONMAN_IPMI_DOWN;
+    if (ipmi->aux.ipmi.ctx) {
+        return(0);
     }
+    /*
+     *  Setup configuration structs for the ctx creation.
+     */
+    ipmi_config.username = strdup(ipmi->aux.ipmi.iconf.username);
+    ipmi_config.password = strdup(ipmi->aux.ipmi.iconf.password);
+    n = ipmi->aux.ipmi.iconf.kgLen;
+    ipmi_config.k_g = malloc(n);
+    memcpy(ipmi_config.k_g, ipmi->aux.ipmi.iconf.kg, n);
+    ipmi_config.k_g_len = n;
+    ipmi_config.privilege_level = -1;
+    ipmi_config.cipher_suite_id = -1;
+
+    protocol_config.session_timeout_len = -1;
+    protocol_config.retransmission_timeout_len = -1;
+    protocol_config.retransmission_backoff_count = -1;
+    protocol_config.keepalive_timeout_len = -1;
+    protocol_config.retransmission_keepalive_timeout_len = -1;
+    protocol_config.acceptable_packet_errors_count = -1;
+    protocol_config.maximum_retransmission_count = -1;
+    protocol_config.debug_flags = 0;
+    protocol_config.security_flags = 0;
+    protocol_config.workaround_flags = 0;
+
+    ipmi->aux.ipmi.ctx = ipmiconsole_ctx_create(ipmi->aux.ipmi.hostname,
+        &ipmi_config, &protocol_config);
+    if (!ipmi->aux.ipmi.ctx) {
+        return(-1);
+    }
+    ipmi->aux.ipmi.state = CONMAN_IPMI_DOWN;
     return(0);
 }
 
@@ -332,7 +345,7 @@ int open_ipmi_obj(obj_t *ipmi)
         disconnect_ipmi_obj(ipmi);
     }
     else {
-        rv = new_ipmi_ctx(ipmi);
+        rv = create_ipmi_ctx(ipmi);
         if (rv < 0)
             return(rv);
         rv = connect_ipmi_obj(ipmi);
@@ -471,9 +484,9 @@ static void disconnect_ipmi_obj(obj_t *ipmi)
                 "Console [%s] disconnected from <%s> via IPMI",
                 ipmi->name, ipmi->aux.ipmi.hostname);
         }
-        rv = new_ipmi_ctx(ipmi);
+        rv = create_ipmi_ctx(ipmi);
         if (rv < 0)
-            log_err(rv, "new_ipmi_ctx failed");
+            log_err(rv, "create_ipmi_ctx failed");
         ipmi->aux.ipmi.state = CONMAN_IPMI_DOWN;
         ipmi->aux.ipmi.timer = tpoll_timeout_relative(tp_global,
             (callback_f) connect_ipmi_obj, ipmi,

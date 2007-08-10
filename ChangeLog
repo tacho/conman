@@ -1,7 +1,17 @@
 2007-08-09  Chris Dunlap  <cdunlap@llnl.gov>
 
-	* server-ipmi.c (parse_kg):
-	  Changed behavior to return -1 on truncation.
+	* : Fixed bug with connecting via IPMI to a BMC where K_g was unset.
+	* server.h: Replaced IPMI_K_G_MAX, IPMI_USERNAME_MAX, and
+	  IPMI_PASSWORD_MAX with defines from ipmi-messaging-support-cmds.h.
+	  Changed struct ipmi_opt by replacing char ptrs with char arrays,
+	  and adding kgLen to denote whether kg is set.
+	* server-ipmi.c (parse_ipmi_opts): Restructured.
+	* server-ipmi.c (create_ipmi_obj): Initialized aux.ipmi.timer.
+	* server-ipmi.c (new_ipmi_ctx): Renamed to create_ipmi_ctx().
+	  Updated to reflect changes to struct ipmi_opt.
+	* server-conf.c: Updated create_server_conf() & destroy_server_conf().
+
+	* server-ipmi.c (parse_kg): Changed to return -1 on outbuf truncation.
 
 	* server-ipmi.c (parse_kg): Tweaked documentation.
 
@@ -32,11 +42,11 @@
 
 	* server.h: Added numIpmiObjs to struct server_conf.
 	  Replaced IPMI_ENGINE_THREADS with IPMI_ENGINE_CONSOLES_PER_THREAD.
-	  Renamed ipmi_setup() to ipmi_init(), ipmi_teardown() to ipmi_fini().
+	* server-ipmi.c (ipmi_setup): Renamed to ipmi_init().
+	  Added num_consoles parm for computing number of ipmi engine threads.
+	* server-ipmi.c (ipmi_teardown): Renamed to ipmi_fini().
 	* server.c, server-conf.c, server-obj.c:
 	  Moved ipmi_init() & ipmi_fini() to server.c:main().
-	* server-ipmi.c (ipmi_init):
-	  Added num_consoles parm for computing number of ipmi engine threads.
 
 	* common.h: Added FEATURE_FREEIPMI to SERVER_FEATURES.
 

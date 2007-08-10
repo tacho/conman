@@ -257,9 +257,7 @@ server_conf_t * create_server_conf(void)
     conf->globalSerOpts.parity = DEFAULT_SEROPT_PARITY;
     conf->globalSerOpts.stopbits = DEFAULT_SEROPT_STOPBITS;
 #ifdef WITH_FREEIPMI
-    conf->globalIpmiOpts.username = NULL;
-    conf->globalIpmiOpts.password = NULL;
-    memset(conf->globalIpmiOpts.k_g, 0, sizeof(conf->globalIpmiOpts.k_g));
+    memset(&conf->globalIpmiOpts, 0, sizeof(conf->globalIpmiOpts));
     conf->numIpmiObjs = 0;
 #endif /* WITH_FREEIPMI */
     conf->enableKeepAlive = 1;
@@ -322,10 +320,6 @@ void destroy_server_conf(server_conf_t *conf)
     destroy_string(conf->logFmtName);
     destroy_string(conf->pidFileName);
     destroy_string(conf->resetCmd);
-#ifdef WITH_FREEIPMI
-    destroy_string(conf->globalIpmiOpts.username);
-    destroy_string(conf->globalIpmiOpts.password);
-#endif /* WITH_FREEIPMI */
     free(conf);
     return;
 }

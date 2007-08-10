@@ -30,6 +30,7 @@
 
 
 #ifdef WITH_FREEIPMI
+#include <freeipmi/ipmi-messaging-support-cmds.h>
 #include <ipmiconsole.h>
 #endif /* WITH_FREEIPMI */
 #include <netinet/in.h>                 /* for struct sockaddr_in            */
@@ -61,9 +62,6 @@
 #define TELNET_MIN_TIMEOUT              15
 
 #ifdef WITH_FREEIPMI
-#define IPMI_K_G_MAX                    20
-#define IPMI_USERNAME_MAX               16
-#define IPMI_PASSWORD_MAX               20
 #define IPMI_ENGINE_CONSOLES_PER_THREAD 64
 #define IPMI_STATUS_CHECK_TIMEOUT       5       /* seconds */
 #define IPMI_CONNECT_RETRY_TIMEOUT      30      /* seconds */
@@ -153,9 +151,13 @@ typedef struct telnet_obj {             /* TELNET AUX OBJ DATA:              */
 
 #ifdef WITH_FREEIPMI
 typedef struct ipmi_opt {               /* IPMI OBJ OPTIONS:                 */
-    char            *username;          /*  BMC user name for auth           */
-    char            *password;          /*  BMC password for auth            */
-    unsigned char    k_g[IPMI_K_G_MAX]; /*  BMC Key for 2-key auth (optional)*/
+                                        /*  BMC username                     */
+    char             username[ IPMI_MAX_USER_NAME_LENGTH + 1 ];
+                                        /*  BMC password                     */
+    char             password[ IPMI_2_0_MAX_PASSWORD_LENGTH + 1 ];
+                                        /*  BMC K_g key                      */
+    unsigned char    kg[ IPMI_MAX_K_G_LENGTH + 1 ];
+    unsigned int     kgLen;             /*  BMC K_g key length (0 if unused) */
 } ipmiopt_t;
 
 typedef struct ipmiconsole_ctx ipmictx_t;
