@@ -21,6 +21,7 @@
  *  51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *****************************************************************************/
 
+
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif /* HAVE_CONFIG_H */
@@ -45,7 +46,7 @@
 extern tpoll_t tp_global;               /* defined in server.c */
 static int ipmi_engine_started = 0;
 
-static int parse_kg(unsigned char *outbuf, size_t outsz, const char *instr);
+static int parse_key(unsigned char *dst, const char *src, size_t dstlen);
 static int create_ipmi_ctx(obj_t *ipmi);
 static int connect_ipmi_obj(obj_t *ipmi);
 static void disconnect_ipmi_obj(obj_t *ipmi);
@@ -92,56 +93,56 @@ void ipmi_fini(void)
 }
 
 
-static int parse_kg(unsigned char *outbuf, size_t outsz, const char *instr)
+static int parse_key(unsigned char *dst, const char *src, size_t dstlen)
 {
-/*  Parses the NUL-terminated BMC K_g key string 'instr', writing the result
- *    into buffer 'outbuf' of length 'outsz'.  The 'outbuf' will always be
+/*  Parses the NUL-terminated key string 'src', writing the result into
+ *    buffer 'dst' of length 'dstlen'.  The 'dst' buffer will always be
  *    NUL-terminated.
- *  The 'instr' is interpreted as ASCII text unless it is prefixed with
+ *  The 'src' is interpreted as ASCII text unless it is prefixed with
  *    "0x" or "0X" and contains only hexadecimal digits (ie, [0-9A-Fa-f]).
  *    A hexadecimal string will be converted to binary and may contain
  *    embedded NUL characters.
- *  Returns the length of the key (in bytes) written to 'outbuf'
+ *  Returns the length of the key (in bytes) written to 'dst'
  *    (not including the final NUL-termination character),
  *    or -1 if truncation occurred.
  */
     const char *hexdigits = "0123456789ABCDEFabcdef";
+    char       *dstend;
     char       *p;
     char       *q;
-    char       *outend;
-    int         outlen;
+    int         n;
 
-    assert(outbuf != NULL);
-    assert(instr != NULL);
+    assert(dst != NULL);
+    assert(src != NULL);
 
-    if ((instr[0] == '0') && (instr[1] == 'x' || instr[1] == 'X')
-            && (strspn(instr + 2, hexdigits) == strlen(instr + 2))) {
-        p = (char *) instr + 2;
-        q = outbuf;
-        outend = outbuf + outsz - 1;    /* reserve space for terminating NUL */
-        outlen = 0;
-        while (*p && (q < outend)) {
-            if (((p - instr) & 0x01) == 0) {
+    if ((src[0] == '0') && (src[1] == 'x' || src[1] == 'X')
+            && (strspn(src + 2, hexdigits) == strlen(src + 2))) {
+        dstend = dst + dstlen - 1;      /* reserve space for terminating NUL */
+        p = (char *) src + 2;
+        q = dst;
+        n = 0;
+        while (*p && (q < dstend)) {
+            if (((p - src) & 0x01) == 0) {
                 *q = (toint(*p++) << 4) & 0xf0;
-                outlen++;
+                n++;
             }
             else {
                 *q++ |= (toint(*p++)) & 0x0f;
             }
         }
-        outbuf[outlen] = '\0';
+        dst[n] = '\0';
         if (*p) {
             return(-1);
         }
     }
     else {
-        if (strlcpy(outbuf, instr, outsz) >= outsz) {
+        if (strlcpy(dst, src, dstlen) >= dstlen) {
             return(-1);
         }
-        outlen = strlen(outbuf);
+        n = strlen(dst);
     }
-    assert(outlen < outsz);
-    return(outlen);
+    assert(n < dstlen);
+    return(n);
 }
 
 
@@ -203,7 +204,7 @@ int parse_ipmi_opts(
         }
     }
     if ((tok = strtok(NULL, separators))) {
-        n = parse_kg(ioptsTmp.kg, sizeof(ioptsTmp.kg), tok);
+        n = parse_key(ioptsTmp.kg, tok, sizeof(ioptsTmp.kg));
         if (n < 0) {
             if ((errbuf != NULL) && (errlen > 0)) {
                 snprintf(errbuf, errlen,
@@ -300,8 +301,7 @@ static int create_ipmi_ctx(obj_t *ipmi)
     if (ipmi->aux.ipmi.ctx) {
         return(0);
     }
-    /*
-     *  Setup configuration structs for the ctx creation.
+    /*  Setup configuration structs for the ctx creation.
      */
     ipmi_config.username = strdup(ipmi->aux.ipmi.iconf.username);
     ipmi_config.password = strdup(ipmi->aux.ipmi.iconf.password);

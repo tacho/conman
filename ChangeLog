@@ -1,3 +1,7 @@
+2007-08-11  Chris Dunlap  <cdunlap@llnl.gov>
+
+	* server-ipmi.c (parse_kg): Renamed to parse_key().  Changed prototype.
+
 2007-08-09  Chris Dunlap  <cdunlap@llnl.gov>
 
 	* : Fixed bug with connecting via IPMI to a BMC where K_g was unset.
