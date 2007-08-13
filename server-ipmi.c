@@ -29,7 +29,6 @@
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
-#include <freeipmi/ipmi-messaging-support-cmds.h>
 #include <ipmiconsole.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -179,7 +178,7 @@ int parse_ipmi_opts(
             if ((errbuf != NULL) && (errlen > 0)) {
                 snprintf(errbuf, errlen,
                     "ipmiopt username exceeds %d-byte max length",
-                    IPMI_MAX_USER_NAME_LENGTH);
+                    IPMI_MAX_USER_LEN);
             }
             return(-1);
         }
@@ -190,7 +189,7 @@ int parse_ipmi_opts(
             if ((errbuf != NULL) && (errlen > 0)) {
                 snprintf(errbuf, errlen,
                     "ipmiopt password exceeds %d-byte max length",
-                    IPMI_2_0_MAX_PASSWORD_LENGTH);
+                    IPMI_MAX_PSWD_LEN);
             }
             return(-1);
         }
@@ -202,7 +201,7 @@ int parse_ipmi_opts(
             if ((errbuf != NULL) && (errlen > 0)) {
                 snprintf(errbuf, errlen,
                     "ipmiopt k_g exceeds %d-byte max length",
-                    IPMI_MAX_K_G_LENGTH);
+                    IPMI_MAX_KG_LEN);
             }
             return(-1);
         }

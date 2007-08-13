@@ -62,6 +62,9 @@
 #define TELNET_MIN_TIMEOUT              15
 
 #ifdef WITH_FREEIPMI
+#define IPMI_MAX_USER_LEN               IPMI_MAX_USER_NAME_LENGTH
+#define IPMI_MAX_PSWD_LEN               IPMI_2_0_MAX_PASSWORD_LENGTH
+#define IPMI_MAX_KG_LEN                 IPMI_MAX_K_G_LENGTH
 #define IPMI_ENGINE_CONSOLES_PER_THREAD 64
 #define IPMI_STATUS_CHECK_TIMEOUT       5       /* seconds */
 #define IPMI_CONNECT_RETRY_TIMEOUT      30      /* seconds */
@@ -150,15 +153,12 @@ typedef struct telnet_obj {             /* TELNET AUX OBJ DATA:              */
 } telnet_obj_t;
 
 #ifdef WITH_FREEIPMI
-typedef struct ipmi_opt {               /* IPMI OBJ OPTIONS:                 */
-                                        /*  BMC username                     */
-    char             username[ IPMI_MAX_USER_NAME_LENGTH + 1 ];
-                                        /*  BMC password                     */
-    char             password[ IPMI_2_0_MAX_PASSWORD_LENGTH + 1 ];
-    unsigned int     passwordLen;       /*  BMC password length              */
-                                        /*  BMC K_g key                      */
-    unsigned char    kg[ IPMI_MAX_K_G_LENGTH + 1 ];
-    unsigned int     kgLen;             /*  BMC K_g key length (0 if unused) */
+typedef struct ipmi_opt {                               /* IPMI OBJ OPTIONS: */
+    char             username[ IPMI_MAX_USER_LEN + 1 ]; /*  BMC username     */
+    unsigned char    password[ IPMI_MAX_PSWD_LEN + 1 ]; /*  BMC password     */
+    unsigned int     passwordLen;                       /*  BMC password len */
+    unsigned char    kg[ IPMI_MAX_KG_LEN + 1 ];         /*  BMC K_g key      */
+    unsigned int     kgLen;                             /*  BMC K_g key len  */
 } ipmiopt_t;
 
 typedef struct ipmiconsole_ctx ipmictx_t;

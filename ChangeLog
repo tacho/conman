@@ -1,5 +1,8 @@
 2007-08-13  Chris Dunlap  <cdunlap@llnl.gov>
 
+	* server.h, server-ipmi.c:
+	  Added IPMI_MAX_USER_LEN, IPMI_MAX_PSWD_LEN, IPMI_MAX_KG_LEN.
+
 	* server-ipmi.c (parse_ipmi_opts),
 	  server-conf.c (parse_console_directive): Allowed an empty ipmiopts
 	  string to be specified to denote specifying no username & password.
