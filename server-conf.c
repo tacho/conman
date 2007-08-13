@@ -936,7 +936,7 @@ static int is_telnet_dev(const char *dev, char **host_ref, int *port_ref)
     }
     *p++ = '\0';
     if (host_ref) {
-        *host_ref = strdup(buf);
+        *host_ref = create_string(buf);
     }
     if (port_ref) {
         *port_ref = atoi(p);
@@ -960,7 +960,7 @@ static int is_ipmi_dev(const char *dev, char **host_ref)
         return(0);
     }
     if (host_ref) {
-        *host_ref = strdup(p);
+        *host_ref = create_string(p);
     }
     return(1);
 }
@@ -989,7 +989,7 @@ static int is_serial_dev(const char *dev, const char *cwd, char **path_ref)
         return(0);
     }
     if (path_ref) {
-        *path_ref = strdup(dev);
+        *path_ref = create_string(dev);
     }
     return(1);
 }
@@ -1025,7 +1025,7 @@ static int is_process_dev(const char *dev, const char *cwd,
         return(0);
     }
     if (path_ref) {
-        *path_ref = strdup(dev);
+        *path_ref = create_string(dev);
     }
     return(1);
 }

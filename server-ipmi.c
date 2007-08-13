@@ -42,13 +42,13 @@
 #include "util-str.h"
 
 
-extern tpoll_t tp_global;               /* defined in server.c */
-static int ipmi_engine_started = 0;
-
 static int parse_key(unsigned char *dst, const char *src, size_t dstlen);
 static int create_ipmi_ctx(obj_t *ipmi);
 static int connect_ipmi_obj(obj_t *ipmi);
 static void disconnect_ipmi_obj(obj_t *ipmi);
+
+extern tpoll_t tp_global;               /* defined in server.c */
+static int ipmi_engine_started = 0;
 
 
 void ipmi_init(int num_consoles)
@@ -246,7 +246,7 @@ obj_t * create_ipmi_obj(server_conf_t *conf, char *name,
         return(NULL);
     }
     ipmi = create_obj(conf, name, -1, CONMAN_OBJ_IPMI);
-    ipmi->aux.ipmi.hostname = strdup(hostname);
+    ipmi->aux.ipmi.hostname = create_string(hostname);
     ipmi->aux.ipmi.iconf = *iconf;
     ipmi->aux.ipmi.ctx = NULL;
     ipmi->aux.ipmi.logfile = NULL;
@@ -280,8 +280,8 @@ static int create_ipmi_ctx(obj_t *ipmi)
     }
     /*  Setup configuration structs for the ctx creation.
      */
-    ipmi_config.username = strdup(ipmi->aux.ipmi.iconf.username);
-    ipmi_config.password = strdup(ipmi->aux.ipmi.iconf.password);
+    ipmi_config.username = create_string(ipmi->aux.ipmi.iconf.username);
+    ipmi_config.password = create_string(ipmi->aux.ipmi.iconf.password);
     n = ipmi->aux.ipmi.iconf.kgLen;
     ipmi_config.k_g = malloc(n);
     memcpy(ipmi_config.k_g, ipmi->aux.ipmi.iconf.kg, n);
