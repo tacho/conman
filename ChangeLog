@@ -1,5 +1,8 @@
 2007-08-13  Chris Dunlap  <cdunlap@llnl.gov>
 
+	* server-ipmi.c (open_ipmi_obj):
+	  Fixed bug with missing fd parm in DPRINTF.
+
 	* server-obj.c (destroy_obj): Removed while-loop with sleep() from
 	  CONMAN_OBJ_IPMI destruction, replacing it with a single attempt and
 	  logging an informational message on error.

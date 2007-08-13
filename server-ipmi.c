@@ -327,8 +327,8 @@ int open_ipmi_obj(obj_t *ipmi)
             return(rv);
         rv = connect_ipmi_obj(ipmi);
     }
-    DPRINTF((9, "Opened [%s] ipmi: host=%s state=%d.\n",
-        ipmi->name, ipmi->aux.ipmi.hostname, ipmi->fd,
+    DPRINTF((9, "Opened [%s] ipmi: fd=%d host=%s state=%d.\n",
+        ipmi->name, ipmi->fd, ipmi->aux.ipmi.hostname,
         (int) ipmi->aux.ipmi.state));
     return(rv);
 }
