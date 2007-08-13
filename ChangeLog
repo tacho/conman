@@ -1,7 +1,12 @@
 2007-08-13  Chris Dunlap  <cdunlap@llnl.gov>
 
+	* server-ipmi.c (parse_ipmi_opts),
+	  server-conf.c (parse_console_directive): Allowed an empty ipmiopts
+	  string to be specified to denote specifying no username & password.
+	* etc/conman.conf, man/conman.conf.5.in: Updated documentation.
+
 	* server-ipmi.c (parse_ipmi_opts):
-	  Changed to allow password key to be entered in hexadecimal like K_g.
+	  Allowed password key to be entered in hexadecimal like K_g.
 	* server.h: Added passwordLen to struct ipmi_opt.
 	* etc/conman.conf, man/conman.conf.5.in: Updated documentation.
 

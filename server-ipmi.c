@@ -151,7 +151,8 @@ int parse_ipmi_opts(
 {
 /*  Parses 'str' for ipmi device options 'iopts'.
  *    The 'iopts' struct should be initialized to a default value.
- *    The 'str' string is of the form "<username>,<password>[,<K_g key>]".
+ *    The 'str' string is of the form "[<username>[,<password>[,<K_g key>]]]".
+ *  An empty 'str' is valid and denotes specifying no username & password.
  *  Returns 0 and updates the 'iopts' struct on sucess; o/w, returns -1
  *    (writing an error message into 'errbuf' if defined).
  */
@@ -165,14 +166,6 @@ int parse_ipmi_opts(
 
     memset(&ioptsTmp, 0, sizeof(ioptsTmp));
 
-    if ((str == NULL) || str[0] == '\0') {
-        if ((errbuf != NULL) && (errlen > 0)) {
-            snprintf(errbuf, errlen,
-                "encountered empty options string");
-        }
-        return(-1);
-    }
-
     if (strlcpy(buf, str, sizeof(buf)) >= sizeof(buf)) {
         if ((errbuf != NULL) && (errlen > 0)) {
             snprintf(errbuf, errlen,
@@ -180,7 +173,6 @@ int parse_ipmi_opts(
         }
         return(-1);
     }
-
     if ((tok = strtok(buf, separators))) {
         n = strlcpy(ioptsTmp.username, tok, sizeof(ioptsTmp.username));
         if (n >= sizeof(ioptsTmp.username)) {
@@ -215,21 +207,6 @@ int parse_ipmi_opts(
             return(-1);
         }
         ioptsTmp.kgLen = n;
-    }
-
-    if (ioptsTmp.username[0] == '\0') {
-        if ((errbuf != NULL) && (errlen > 0)) {
-            snprintf(errbuf, errlen,
-                "ipmiopt username not specified");
-        }
-        return(-1);
-    }
-    if (ioptsTmp.password[0] == '\0') {
-        if ((errbuf != NULL) && (errlen > 0)) {
-            snprintf(errbuf, errlen,
-                "ipmiopt password not specified");
-        }
-        return(-1);
     }
     *iopts = ioptsTmp;
     return(0);

@@ -137,7 +137,7 @@ for none, '\fBo\fR' for odd, and '\fBe\fR' for even.
 .sp
 The default is "9600,8n1" for 9600 bps, 8 data bits, no parity, and 1 stop bit.
 .TP
-\fBipmiopts\fR \fB=\fR "\fIusername\fR,\fIpassword\fR[,\fIK_g\fR]"
+\fBipmiopts\fR \fB=\fR "[\fIusername\fR[,\fIpassword\fR[,\fIK_g\fR]]]"
 Specifies global options for IPMI Serial-Over-LAN devices.  These options can
 be overridden on a per-console basis by specifying the \fBCONSOLE\fR
 \fBipmiopts\fR keyword.  This directive is only available if compiled with the

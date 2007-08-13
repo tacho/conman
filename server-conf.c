@@ -703,8 +703,7 @@ static void parse_console_directive(server_conf_t *conf, Lex l)
                 snprintf(err, sizeof(err), "unexpected '=' after %s keyword",
                     server_conf_strs[LEX_UNTOK(tok)]);
             }
-            else if ((lex_next(l) != LEX_STR)
-                    || is_empty_string(lex_text(l))) {
+            else if (lex_next(l) != LEX_STR) {
                 snprintf(err, sizeof(err), "expected STRING for %s value",
                     server_conf_strs[LEX_UNTOK(tok)]);
             }
