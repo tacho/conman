@@ -155,6 +155,7 @@ typedef struct ipmi_opt {               /* IPMI OBJ OPTIONS:                 */
     char             username[ IPMI_MAX_USER_NAME_LENGTH + 1 ];
                                         /*  BMC password                     */
     char             password[ IPMI_2_0_MAX_PASSWORD_LENGTH + 1 ];
+    unsigned int     passwordLen;       /*  BMC password length              */
                                         /*  BMC K_g key                      */
     unsigned char    kg[ IPMI_MAX_K_G_LENGTH + 1 ];
     unsigned int     kgLen;             /*  BMC K_g key length (0 if unused) */

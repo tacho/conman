@@ -193,8 +193,8 @@ int parse_ipmi_opts(
         }
     }
     if ((tok = strtok(NULL, separators))) {
-        n = strlcpy(ioptsTmp.password, tok, sizeof(ioptsTmp.password));
-        if (n >= sizeof(ioptsTmp.password)) {
+        n = parse_key(ioptsTmp.password, tok, sizeof(ioptsTmp.password));
+        if (n < 0) {
             if ((errbuf != NULL) && (errlen > 0)) {
                 snprintf(errbuf, errlen,
                     "ipmiopt password exceeds %d-byte max length",
@@ -202,6 +202,7 @@ int parse_ipmi_opts(
             }
             return(-1);
         }
+        ioptsTmp.passwordLen = n;
     }
     if ((tok = strtok(NULL, separators))) {
         n = parse_key(ioptsTmp.kg, tok, sizeof(ioptsTmp.kg));

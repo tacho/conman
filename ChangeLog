@@ -1,3 +1,10 @@
+2007-08-13  Chris Dunlap  <cdunlap@llnl.gov>
+
+	* server-ipmi.c (parse_ipmi_opts):
+	  Changed to allow password key to be entered in hexadecimal like K_g.
+	* server.h: Added passwordLen to struct ipmi_opt.
+	* etc/conman.conf, man/conman.conf.5.in: Updated documentation.
+
 2007-08-11  Chris Dunlap  <cdunlap@llnl.gov>
 
 	* server-ipmi.c (parse_kg): Renamed to parse_key().  Changed prototype.
