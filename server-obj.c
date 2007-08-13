@@ -71,10 +71,11 @@ obj_t * create_obj(
         || type==CONMAN_OBJ_LOGFILE
         || type==CONMAN_OBJ_PROCESS
         || type==CONMAN_OBJ_SERIAL
+        || type==CONMAN_OBJ_TELNET
 #ifdef WITH_FREEIPMI
         || type==CONMAN_OBJ_IPMI
 #endif /* WITH_FREEIPMI */
-        || type==CONMAN_OBJ_TELNET);
+    );
 
     if (!(obj = malloc(sizeof(obj_t))))
         out_of_memory();
@@ -209,10 +210,11 @@ void destroy_obj(obj_t *obj)
             free(obj->aux.ipmi.hostname);
         }
         if (obj->aux.ipmi.ctx) {
-            while (ipmiconsole_ctx_destroy(obj->aux.ipmi.ctx) < 0) {
-                printf("%s\n", ipmiconsole_ctx_strerror(
-                    ipmiconsole_ctx_errnum(obj->aux.ipmi.ctx)));
-                sleep(1);
+            if (ipmiconsole_ctx_destroy(obj->aux.ipmi.ctx) < 0) {
+                log_msg(LOG_INFO,
+                    "Unable to destroy IPMI context for console [%s]: %s",
+                    obj->name, ipmiconsole_ctx_strerror(
+                        ipmiconsole_ctx_errnum(obj->aux.ipmi.ctx)));
             }
         }
         break;

@@ -1,5 +1,9 @@
 2007-08-13  Chris Dunlap  <cdunlap@llnl.gov>
 
+	* server-obj.c (destroy_obj): Removed while-loop with sleep() from
+	  CONMAN_OBJ_IPMI destruction, replacing it with a single attempt and
+	  logging an informational message on error.
+
 	* server.h, server-ipmi.c:
 	  Added IPMI_MAX_USER_LEN, IPMI_MAX_PSWD_LEN, IPMI_MAX_KG_LEN.
 
