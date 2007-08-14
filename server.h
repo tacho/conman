@@ -65,7 +65,7 @@
 #define IPMI_MAX_USER_LEN               IPMI_MAX_USER_NAME_LENGTH
 #define IPMI_MAX_PSWD_LEN               IPMI_2_0_MAX_PASSWORD_LENGTH
 #define IPMI_MAX_KG_LEN                 IPMI_MAX_K_G_LENGTH
-#define IPMI_ENGINE_CONSOLES_PER_THREAD 64
+#define IPMI_ENGINE_CONSOLES_PER_THREAD 128
 #define IPMI_STATUS_CHECK_TIMEOUT       5       /* seconds */
 #define IPMI_CONNECT_RETRY_TIMEOUT      30      /* seconds */
 #endif /* WITH_FREEIPMI */

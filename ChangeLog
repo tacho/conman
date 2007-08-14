@@ -1,5 +1,7 @@
 2007-08-14  Chris Dunlap  <cdunlap@llnl.gov>
 
+	* server.h: Increased IPMI_ENGINE_CONSOLES_PER_THREAD to 128.
+
 	* server-ipmi.c (parse_ipmi_opts): Added stub reminder to someday log
 	  a warning when characters in the IPMI password key are ignored due to
 	  an embedded NUL character.
