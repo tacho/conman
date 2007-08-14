@@ -155,8 +155,7 @@ typedef struct telnet_obj {             /* TELNET AUX OBJ DATA:              */
 #ifdef WITH_FREEIPMI
 typedef struct ipmi_opt {                               /* IPMI OBJ OPTIONS: */
     char             username[ IPMI_MAX_USER_LEN + 1 ]; /*  BMC username     */
-    unsigned char    password[ IPMI_MAX_PSWD_LEN + 1 ]; /*  BMC password     */
-    unsigned int     passwordLen;                       /*  BMC password len */
+    char             password[ IPMI_MAX_PSWD_LEN + 1 ]; /*  BMC password     */
     unsigned char    kg[ IPMI_MAX_KG_LEN + 1 ];         /*  BMC K_g key      */
     unsigned int     kgLen;                             /*  BMC K_g key len  */
 } ipmiopt_t;

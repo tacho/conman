@@ -1,5 +1,11 @@
 2007-08-14  Chris Dunlap  <cdunlap@llnl.gov>
 
+	* etc/conman.conf, man/conman.conf.5.in: Updated documentation to
+	  reflect that any characters following the first NUL in the IPMI
+	  password key will be ignored.
+	* server.h, server-ipmi.c (parse_ipmi_opts):
+	  Removed passwordLen from struct ipmi_opt.
+
 	* server-esc.c (perform_serial_break):
 	  Added check for send_ipmi_break() and send_telnet_cmd() rc.
 	  Changed tcsendbreak() error to be non-fatal.

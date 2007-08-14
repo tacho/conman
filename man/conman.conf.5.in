@@ -158,7 +158,9 @@ to authenticate to the BMCs serving the remote consoles.
 .sp
 Both the \fIpassword\fR and \fIK_g\fR keys can be specified in either ASCII or
 hexadecimal; in the latter case, the string should begin with "0x" and contain
-at most 40 hexadecimal digits.
+at most 40 hexadecimal digits.  A \fIK_g\fR key entered in hexadecimal may
+contain embedded NUL characters, but any characters following the first NUL in
+the \fIpassword\fR key will be ignored.
 
 .SH CONSOLE DIRECTIVES
 This directive defines an individual console being managed by the daemon.

@@ -193,7 +193,6 @@ int parse_ipmi_opts(
             }
             return(-1);
         }
-        ioptsTmp.passwordLen = n;
     }
     if ((tok = strtok(NULL, separators))) {
         n = parse_key(ioptsTmp.kg, tok, sizeof(ioptsTmp.kg));
