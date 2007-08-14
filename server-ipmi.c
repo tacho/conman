@@ -338,6 +338,9 @@ int open_ipmi_obj(obj_t *ipmi)
 
 int send_ipmi_break(obj_t *ipmi)
 {
+/*  Generates a serial-break for the specified 'ipmi' obj.
+ *  Returns 0 on success; o/w, returns -1.
+ */
     assert(ipmi != NULL);
     assert(is_ipmi_obj(ipmi));
     assert(ipmi->aux.ipmi.ctx != NULL);

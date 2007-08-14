@@ -1,5 +1,10 @@
 2007-08-14  Chris Dunlap  <cdunlap@llnl.gov>
 
+	* server-esc.c (perform_serial_break):
+	  Added check for send_ipmi_break() and send_telnet_cmd() rc.
+	  Changed tcsendbreak() error to be non-fatal.
+	* server-ipmi.c (send_ipmi_break): Documented function call.
+
 	* server-ipmi.c (ipmi_init): Tweaked log messages.
 
 2007-08-13  Chris Dunlap  <cdunlap@llnl.gov>
