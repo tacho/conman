@@ -66,11 +66,11 @@ void ipmi_init(int num_consoles)
     num_threads = ((num_consoles - 1) / IPMI_ENGINE_CONSOLES_PER_THREAD) + 1;
 
     if (ipmiconsole_engine_init(num_threads, 0) < 0) {
-        log_err(0, "Unable to start IPMI engine");
+        log_err(0, "Unable to start IPMI SOL engine");
     }
     else {
         log_msg(LOG_INFO,
-            "IPMI engine started with %d thread%s for %d console%s",
+            "IPMI SOL engine started with %d thread%s for %d console%s",
             num_threads, (num_threads == 1) ? "" : "s",
             num_consoles, (num_consoles == 1) ? "" : "s");
     }

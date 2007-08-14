@@ -1,3 +1,7 @@
+2007-08-14  Chris Dunlap  <cdunlap@llnl.gov>
+
+	* server-ipmi.c (ipmi_init): Tweaked log messages.
+
 2007-08-13  Chris Dunlap  <cdunlap@llnl.gov>
 
 	* server-ipmi.c (create_ipmi_ctx): Added check for malloc() rc.
