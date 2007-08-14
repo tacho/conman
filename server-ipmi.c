@@ -193,6 +193,16 @@ int parse_ipmi_opts(
             }
             return(-1);
         }
+#if 0
+        /*  FIXME: A warning should be logged here when characters in the
+         *    password key are ignored due to an embedded NUL character.
+         *    But currently there is no clean way to pass this warning back up
+         *    to the caller in order to associate it with a line number and
+         *    console name.
+         */
+        if (n > strlen(ioptsTmp.password)) {
+        }
+#endif
     }
     if ((tok = strtok(NULL, separators))) {
         n = parse_key(ioptsTmp.kg, tok, sizeof(ioptsTmp.kg));

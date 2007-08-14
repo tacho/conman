@@ -1,5 +1,9 @@
 2007-08-14  Chris Dunlap  <cdunlap@llnl.gov>
 
+	* server-ipmi.c (parse_ipmi_opts): Added stub reminder to someday log
+	  a warning when characters in the IPMI password key are ignored due to
+	  an embedded NUL character.
+
 	* etc/conman.conf, man/conman.conf.5.in: Updated documentation to
 	  reflect that any characters following the first NUL in the IPMI
 	  password key will be ignored.
