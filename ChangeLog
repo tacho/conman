@@ -1,5 +1,7 @@
 2007-08-13  Chris Dunlap  <cdunlap@llnl.gov>
 
+	* server-ipmi.c (create_ipmi_ctx): Added check for malloc() rc.
+
 	* server-conf.c, server-ipmi.c: Replaced strdup() with create_string().
 
 	* server-ipmi.c (open_ipmi_obj):

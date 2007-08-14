@@ -283,7 +283,9 @@ static int create_ipmi_ctx(obj_t *ipmi)
     ipmi_config.username = create_string(ipmi->aux.ipmi.iconf.username);
     ipmi_config.password = create_string(ipmi->aux.ipmi.iconf.password);
     n = ipmi->aux.ipmi.iconf.kgLen;
-    ipmi_config.k_g = malloc(n);
+    if (!(ipmi_config.k_g = malloc(n))) {
+        return(-1);
+    }
     memcpy(ipmi_config.k_g, ipmi->aux.ipmi.iconf.kg, n);
     ipmi_config.k_g_len = n;
     ipmi_config.privilege_level = -1;
