@@ -1,5 +1,8 @@
 2007-08-14  Chris Dunlap  <cdunlap@llnl.gov>
 
+	* server-ipmi.c (create_ipmi_ctx):  Fixed memory leak on error.
+	  Fixed bug so k_g malloc() is only performed when (kgLen > 0).
+
 	* server.h: Increased IPMI_ENGINE_CONSOLES_PER_THREAD to 128.
 
 	* server-ipmi.c (parse_ipmi_opts): Added stub reminder to someday log

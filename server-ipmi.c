@@ -224,7 +224,7 @@ int parse_ipmi_opts(
 obj_t * create_ipmi_obj(server_conf_t *conf, char *name,
     ipmiopt_t *iconf, char *hostname, char *errbuf, int errlen)
 {
-/*  Creates a new ipmi device object and adds it to the master objs list.
+/*  Creates a new IPMI device object and adds it to the master objs list.
  *  Returns the new object, or NULL on error.
  */
     ListIterator i;
@@ -271,13 +271,40 @@ obj_t * create_ipmi_obj(server_conf_t *conf, char *name,
 }
 
 
+int open_ipmi_obj(obj_t *ipmi)
+{
+/*  (Re)opens the specified 'ipmi' obj.
+ *  Returns 0 if the IPMI console is sucessfully opened; o/w, returns -1.
+ */
+    int rc = 0;
+
+    assert(ipmi != NULL);
+    assert(is_ipmi_obj(ipmi));
+
+    if (ipmi->aux.ipmi.state == CONMAN_IPMI_UP) {
+        disconnect_ipmi_obj(ipmi);
+    }
+    else {
+        if (create_ipmi_ctx(ipmi) < 0) {
+            return(-1);
+        }
+        rc = connect_ipmi_obj(ipmi);
+    }
+    DPRINTF((9, "Opened [%s] ipmi: fd=%d host=%s state=%d.\n",
+        ipmi->name, ipmi->fd, ipmi->aux.ipmi.hostname,
+        (int) ipmi->aux.ipmi.state));
+    return(rc);
+}
+
+
 static int create_ipmi_ctx(obj_t *ipmi)
 {
-/*  Returns 0 if the IPMI ctx is sucessfully created; o/w, returns -1.
+/*  Creates a new IPMI context 'ipmi'.
+ *  Returns 0 if the context is sucessfully created; o/w, returns -1.
  */
     struct ipmiconsole_ipmi_config ipmi_config;
     struct ipmiconsole_protocol_config protocol_config;
-    int n;
+    unsigned int kgLen;
 
     assert(ipmi != NULL);
     assert(is_ipmi_obj(ipmi));
@@ -291,12 +318,16 @@ static int create_ipmi_ctx(obj_t *ipmi)
      */
     ipmi_config.username = create_string(ipmi->aux.ipmi.iconf.username);
     ipmi_config.password = create_string(ipmi->aux.ipmi.iconf.password);
-    n = ipmi->aux.ipmi.iconf.kgLen;
-    if (!(ipmi_config.k_g = malloc(n))) {
-        return(-1);
+    if ((kgLen = ipmi->aux.ipmi.iconf.kgLen) == 0) {
+        ipmi_config.k_g = NULL;
     }
-    memcpy(ipmi_config.k_g, ipmi->aux.ipmi.iconf.kg, n);
-    ipmi_config.k_g_len = n;
+    else if ((ipmi_config.k_g = malloc(kgLen)) != NULL) {
+        memcpy(ipmi_config.k_g, ipmi->aux.ipmi.iconf.kg, kgLen);
+    }
+    else {
+        goto err;
+    }
+    ipmi_config.k_g_len = kgLen;
     ipmi_config.privilege_level = -1;
     ipmi_config.cipher_suite_id = -1;
 
@@ -311,37 +342,19 @@ static int create_ipmi_ctx(obj_t *ipmi)
     protocol_config.security_flags = 0;
     protocol_config.workaround_flags = 0;
 
-    ipmi->aux.ipmi.ctx = ipmiconsole_ctx_create(ipmi->aux.ipmi.hostname,
-        &ipmi_config, &protocol_config);
+    ipmi->aux.ipmi.ctx = ipmiconsole_ctx_create(
+        ipmi->aux.ipmi.hostname, &ipmi_config, &protocol_config);
     if (!ipmi->aux.ipmi.ctx) {
-        return(-1);
+        goto err;
     }
     ipmi->aux.ipmi.state = CONMAN_IPMI_DOWN;
     return(0);
-}
 
-
-int open_ipmi_obj(obj_t *ipmi)
-{
-/*  (Re)opens the specified 'ipmi' obj.
- *  Returns 0 if the IPMI console is sucessfully opened; o/w, returns -1.
- */
-    int rv = 0;
-    assert(is_ipmi_obj(ipmi));
-
-    if (ipmi->aux.ipmi.state == CONMAN_IPMI_UP) {
-        disconnect_ipmi_obj(ipmi);
-    }
-    else {
-        rv = create_ipmi_ctx(ipmi);
-        if (rv < 0)
-            return(rv);
-        rv = connect_ipmi_obj(ipmi);
-    }
-    DPRINTF((9, "Opened [%s] ipmi: fd=%d host=%s state=%d.\n",
-        ipmi->name, ipmi->fd, ipmi->aux.ipmi.hostname,
-        (int) ipmi->aux.ipmi.state));
-    return(rv);
+err:
+    destroy_string(ipmi_config.username);
+    destroy_string(ipmi_config.password);
+    destroy_string(ipmi_config.k_g);
+    return(-1);
 }
 
 
@@ -360,7 +373,7 @@ int send_ipmi_break(obj_t *ipmi)
 
 static int connect_ipmi_obj(obj_t *ipmi)
 {
-    int rv = 0;
+    int rc = 0;
 
     assert(ipmi != NULL);
     assert(is_ipmi_obj(ipmi));
@@ -377,8 +390,8 @@ static int connect_ipmi_obj(obj_t *ipmi)
          */
         DPRINTF((10, "Connecting to <%s> for [%s].\n",
             ipmi->aux.ipmi.hostname, ipmi->name));
-        rv = ipmiconsole_engine_submit(ipmi->aux.ipmi.ctx);
-        if (rv < 0) {
+        rc = ipmiconsole_engine_submit(ipmi->aux.ipmi.ctx);
+        if (rc < 0) {
             log_msg(LOG_WARNING,
                 "Unable to submit ipmi ctx to engine for [%s]: %s", ipmi->name,
                 ipmiconsole_ctx_strerror(ipmiconsole_ctx_errnum(
@@ -401,8 +414,8 @@ static int connect_ipmi_obj(obj_t *ipmi)
         /*
          *  Check with the engine to see if the connection was successful.
          */
-        rv = ipmiconsole_ctx_status(ipmi->aux.ipmi.ctx);
-        if (rv < 0) {
+        rc = ipmiconsole_ctx_status(ipmi->aux.ipmi.ctx);
+        if (rc < 0) {
             /* something wonky happened and we couldn't get the conn status */
             log_msg(LOG_WARNING,
                 "Error retrieving ipmi ctx status from engine for [%s]",
@@ -411,17 +424,17 @@ static int connect_ipmi_obj(obj_t *ipmi)
             return(-1);
         }
 
-        if (rv == IPMICONSOLE_CONTEXT_STATUS_ERROR) {
+        if (rc == IPMICONSOLE_CONTEXT_STATUS_ERROR) {
             /* an error occurred with the ipmi connection */
-            rv = ipmiconsole_ctx_errnum(ipmi->aux.ipmi.ctx);
+            rc = ipmiconsole_ctx_errnum(ipmi->aux.ipmi.ctx);
             log_msg(LOG_WARNING, "Error establishing ipmi link for [%s]: %s",
-                ipmi->name, ipmiconsole_ctx_strerror(rv));
+                ipmi->name, ipmiconsole_ctx_strerror(rc));
             ipmi->fd = -1;
             disconnect_ipmi_obj(ipmi);
             return(-1);
         }
 
-        if (rv == IPMICONSOLE_CONTEXT_STATUS_NONE) {
+        if (rc == IPMICONSOLE_CONTEXT_STATUS_NONE) {
             /* wait a bit longer */
             ipmi->aux.ipmi.timer = tpoll_timeout_relative(tp_global,
                 (callback_f) connect_ipmi_obj, ipmi,
@@ -429,7 +442,7 @@ static int connect_ipmi_obj(obj_t *ipmi)
             return(-1);
         }
 
-        if (rv == IPMICONSOLE_CONTEXT_STATUS_SOL_ESTABLISHED) {
+        if (rc == IPMICONSOLE_CONTEXT_STATUS_SOL_ESTABLISHED) {
             /* success! */
             write_notify_msg(ipmi, LOG_INFO,
                 "Console [%s] connected to <%s> via IPMI",
@@ -440,12 +453,12 @@ static int connect_ipmi_obj(obj_t *ipmi)
         else {
             log_msg(LOG_WARNING,
                 "Unrecognize ipmi ctx status value %d for [%s]",
-                rv, ipmi->name);
+                rc, ipmi->name);
             disconnect_ipmi_obj(ipmi);
             return(-1);
         }
     }
-    return(rv);
+    return(rc);
 }
 
 
@@ -453,7 +466,7 @@ static void disconnect_ipmi_obj(obj_t *ipmi)
 {
     assert(ipmi != NULL);
     assert(is_ipmi_obj(ipmi));
-    int rv;
+    int rc;
 
     if (ipmi->aux.ipmi.timer >= 0) {
         (void) tpoll_timeout_cancel(tp_global, ipmi->aux.ipmi.timer);
@@ -475,9 +488,9 @@ static void disconnect_ipmi_obj(obj_t *ipmi)
                 "Console [%s] disconnected from <%s> via IPMI",
                 ipmi->name, ipmi->aux.ipmi.hostname);
         }
-        rv = create_ipmi_ctx(ipmi);
-        if (rv < 0)
-            log_err(rv, "create_ipmi_ctx failed");
+        rc = create_ipmi_ctx(ipmi);
+        if (rc < 0)
+            log_err(rc, "create_ipmi_ctx failed");
         ipmi->aux.ipmi.state = CONMAN_IPMI_DOWN;
         ipmi->aux.ipmi.timer = tpoll_timeout_relative(tp_global,
             (callback_f) connect_ipmi_obj, ipmi,
