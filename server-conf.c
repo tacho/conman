@@ -749,6 +749,7 @@ static void parse_console_directive(server_conf_t *conf, Lex l)
     destroy_string(con.log);
     destroy_string(con.lopts);
     destroy_string(con.sopts);
+    destroy_string(con.iopts);
     return;
 }
 

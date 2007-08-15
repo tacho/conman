@@ -1,6 +1,9 @@
 2007-08-14  Chris Dunlap  <cdunlap@llnl.gov>
 
 	* server-conf.c (parse_console_directive):
+	  Fixed memory leak with undestroyed con.iopts.
+
+	* server-conf.c (parse_console_directive):
 	  Fixed bug with uninitialized con.iopts.
 
 	* server-ipmi.c (create_ipmi_ctx):
