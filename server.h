@@ -169,7 +169,7 @@ typedef enum ipmi_connect_state {
 } ipmi_state_t;
 
 typedef struct ipmi_obj {               /* IPMI AUX OBJ DATA:                */
-    char            *hostname;          /*  remote bmc host name/ip          */
+    char            *host;              /*  remote bmc host name/ip          */
     ipmiopt_t        iconf;             /*  conf to connect to bmc           */
     ipmictx_t       *ctx;               /*  ipmi session ctx obj             */
     struct base_obj *logfile;           /*  log obj ref for console          */
@@ -418,7 +418,7 @@ int parse_ipmi_opts(
     ipmiopt_t *iopts, const char *str, char *errbuf, int errlen);
 
 obj_t * create_ipmi_obj(server_conf_t *conf, char *name,
-    ipmiopt_t *iconf, char *hostname, char *errbuf, int errlen);
+    ipmiopt_t *iconf, char *host, char *errbuf, int errlen);
 
 int open_ipmi_obj(obj_t *ipmi);
 

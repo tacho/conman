@@ -1,3 +1,8 @@
+2007-08-15  Chris Dunlap  <cdunlap@llnl.gov>
+
+	* server.h, server-ipmi.c, server-obj.c, server-sock.c:
+	  Renamed struct ipmi_obj hostname field to host.
+
 2007-08-14  Chris Dunlap  <cdunlap@llnl.gov>
 
 	* server-conf.c (parse_console_directive):

@@ -222,7 +222,7 @@ int parse_ipmi_opts(
 
 
 obj_t * create_ipmi_obj(server_conf_t *conf, char *name,
-    ipmiopt_t *iconf, char *hostname, char *errbuf, int errlen)
+    ipmiopt_t *iconf, char *host, char *errbuf, int errlen)
 {
 /*  Creates a new IPMI device object and adds it to the master objs list.
  *  Returns the new object, or NULL on error.
@@ -243,10 +243,10 @@ obj_t * create_ipmi_obj(server_conf_t *conf, char *name,
                 "console [%s] specifies duplicate console name", name);
             break;
         }
-        if (is_ipmi_obj(ipmi) && !strcmp(ipmi->aux.ipmi.hostname, hostname)) {
+        if (is_ipmi_obj(ipmi) && !strcmp(ipmi->aux.ipmi.host, host)) {
             snprintf(errbuf, errlen,
                 "console [%s] specifies duplicate hostname \"%s\"",
-                name, hostname);
+                name, host);
             break;
         }
     }
@@ -255,7 +255,7 @@ obj_t * create_ipmi_obj(server_conf_t *conf, char *name,
         return(NULL);
     }
     ipmi = create_obj(conf, name, -1, CONMAN_OBJ_IPMI);
-    ipmi->aux.ipmi.hostname = create_string(hostname);
+    ipmi->aux.ipmi.host = create_string(host);
     ipmi->aux.ipmi.iconf = *iconf;
     ipmi->aux.ipmi.ctx = NULL;
     ipmi->aux.ipmi.logfile = NULL;
@@ -291,7 +291,7 @@ int open_ipmi_obj(obj_t *ipmi)
         rc = connect_ipmi_obj(ipmi);
     }
     DPRINTF((9, "Opened [%s] ipmi: fd=%d host=%s state=%d.\n",
-        ipmi->name, ipmi->fd, ipmi->aux.ipmi.hostname,
+        ipmi->name, ipmi->fd, ipmi->aux.ipmi.host,
         (int) ipmi->aux.ipmi.state));
     return(rc);
 }
@@ -334,7 +334,7 @@ static int create_ipmi_ctx(obj_t *ipmi)
     protocol_config.workaround_flags = 0;
 
     ipmi->aux.ipmi.ctx = ipmiconsole_ctx_create(
-        ipmi->aux.ipmi.hostname, &ipmi_config, &protocol_config);
+        ipmi->aux.ipmi.host, &ipmi_config, &protocol_config);
     if (!ipmi->aux.ipmi.ctx) {
         return(-1);
     }
@@ -361,7 +361,7 @@ static int connect_ipmi_obj(obj_t *ipmi)
          *  Do a non-blocking submit of this ctx to the engine.
          */
         DPRINTF((10, "Connecting to <%s> for [%s].\n",
-            ipmi->aux.ipmi.hostname, ipmi->name));
+            ipmi->aux.ipmi.host, ipmi->name));
         rc = ipmiconsole_engine_submit(ipmi->aux.ipmi.ctx);
         if (rc < 0) {
             log_msg(LOG_WARNING,
@@ -418,7 +418,7 @@ static int connect_ipmi_obj(obj_t *ipmi)
             /* success! */
             write_notify_msg(ipmi, LOG_INFO,
                 "Console [%s] connected to <%s> via IPMI",
-                ipmi->name, ipmi->aux.ipmi.hostname);
+                ipmi->name, ipmi->aux.ipmi.host);
             ipmi->aux.ipmi.state = CONMAN_IPMI_UP;
             return(0);
         }
@@ -458,7 +458,7 @@ static void disconnect_ipmi_obj(obj_t *ipmi)
         if (ipmi->aux.ipmi.state == CONMAN_IPMI_UP) {
             write_notify_msg(ipmi, LOG_NOTICE,
                 "Console [%s] disconnected from <%s> via IPMI",
-                ipmi->name, ipmi->aux.ipmi.hostname);
+                ipmi->name, ipmi->aux.ipmi.host);
         }
         rc = create_ipmi_ctx(ipmi);
         if (rc < 0)

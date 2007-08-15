@@ -206,8 +206,8 @@ void destroy_obj(obj_t *obj)
         break;
 #ifdef WITH_FREEIPMI
     case CONMAN_OBJ_IPMI:
-        if (obj->aux.ipmi.hostname) {
-            free(obj->aux.ipmi.hostname);
+        if (obj->aux.ipmi.host) {
+            free(obj->aux.ipmi.host);
         }
         if (obj->aux.ipmi.ctx) {
             if (ipmiconsole_ctx_destroy(obj->aux.ipmi.ctx) < 0) {
