@@ -304,7 +304,6 @@ static int create_ipmi_ctx(obj_t *ipmi)
  */
     struct ipmiconsole_ipmi_config ipmi_config;
     struct ipmiconsole_protocol_config protocol_config;
-    unsigned int kgLen;
 
     assert(ipmi != NULL);
     assert(is_ipmi_obj(ipmi));
@@ -316,18 +315,10 @@ static int create_ipmi_ctx(obj_t *ipmi)
     }
     /*  Setup configuration structs for the ctx creation.
      */
-    ipmi_config.username = create_string(ipmi->aux.ipmi.iconf.username);
-    ipmi_config.password = create_string(ipmi->aux.ipmi.iconf.password);
-    if ((kgLen = ipmi->aux.ipmi.iconf.kgLen) == 0) {
-        ipmi_config.k_g = NULL;
-    }
-    else if ((ipmi_config.k_g = malloc(kgLen)) != NULL) {
-        memcpy(ipmi_config.k_g, ipmi->aux.ipmi.iconf.kg, kgLen);
-    }
-    else {
-        goto err;
-    }
-    ipmi_config.k_g_len = kgLen;
+    ipmi_config.username = ipmi->aux.ipmi.iconf.username;
+    ipmi_config.password = ipmi->aux.ipmi.iconf.password;
+    ipmi_config.k_g = ipmi->aux.ipmi.iconf.kg;
+    ipmi_config.k_g_len = ipmi->aux.ipmi.iconf.kgLen;
     ipmi_config.privilege_level = -1;
     ipmi_config.cipher_suite_id = -1;
 
@@ -345,16 +336,10 @@ static int create_ipmi_ctx(obj_t *ipmi)
     ipmi->aux.ipmi.ctx = ipmiconsole_ctx_create(
         ipmi->aux.ipmi.hostname, &ipmi_config, &protocol_config);
     if (!ipmi->aux.ipmi.ctx) {
-        goto err;
+        return(-1);
     }
     ipmi->aux.ipmi.state = CONMAN_IPMI_DOWN;
     return(0);
-
-err:
-    destroy_string(ipmi_config.username);
-    destroy_string(ipmi_config.password);
-    destroy_string(ipmi_config.k_g);
-    return(-1);
 }
 
 

@@ -1,5 +1,8 @@
 2007-08-14  Chris Dunlap  <cdunlap@llnl.gov>
 
+	* server-ipmi.c (create_ipmi_ctx):
+	  Removed dynamic memory allocation for ipmi_config values.
+
 	* server-ipmi.c (create_ipmi_ctx):  Fixed memory leak on error.
 	  Fixed bug so k_g malloc() is only performed when (kgLen > 0).
 
