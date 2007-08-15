@@ -598,7 +598,9 @@ static void parse_console_directive(server_conf_t *conf, Lex l)
     int tok;
     int done = 0;
     char err[MAX_LINE] = "";
-    console_strs_t con = { NULL, NULL, NULL, NULL, NULL };
+    console_strs_t con;
+
+    memset(&con, 0, sizeof(con));
 
     directive = server_conf_strs[LEX_UNTOK(lex_prev(l))];
     line = lex_line(l);
