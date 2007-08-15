@@ -343,19 +343,6 @@ static int create_ipmi_ctx(obj_t *ipmi)
 }
 
 
-int send_ipmi_break(obj_t *ipmi)
-{
-/*  Generates a serial-break for the specified 'ipmi' obj.
- *  Returns 0 on success; o/w, returns -1.
- */
-    assert(ipmi != NULL);
-    assert(is_ipmi_obj(ipmi));
-    assert(ipmi->aux.ipmi.ctx != NULL);
-
-    return(ipmiconsole_ctx_generate_break(ipmi->aux.ipmi.ctx));
-}
-
-
 static int connect_ipmi_obj(obj_t *ipmi)
 {
     int rc = 0;
@@ -481,4 +468,17 @@ static void disconnect_ipmi_obj(obj_t *ipmi)
             (callback_f) connect_ipmi_obj, ipmi,
             IPMI_CONNECT_RETRY_TIMEOUT * 1000);
     }
+}
+
+
+int send_ipmi_break(obj_t *ipmi)
+{
+/*  Generates a serial-break for the specified 'ipmi' obj.
+ *  Returns 0 on success; o/w, returns -1.
+ */
+    assert(ipmi != NULL);
+    assert(is_ipmi_obj(ipmi));
+    assert(ipmi->aux.ipmi.ctx != NULL);
+
+    return(ipmiconsole_ctx_generate_break(ipmi->aux.ipmi.ctx));
 }
