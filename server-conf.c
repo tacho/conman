@@ -749,7 +749,9 @@ static void parse_console_directive(server_conf_t *conf, Lex l)
     destroy_string(con.log);
     destroy_string(con.lopts);
     destroy_string(con.sopts);
+#ifdef WITH_FREEIPMI
     destroy_string(con.iopts);
+#endif /* WITH_FREEIPMI */
     return;
 }
 
