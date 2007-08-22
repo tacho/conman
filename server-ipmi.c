@@ -428,6 +428,9 @@ static int complete_ipmi_connect(obj_t *ipmi)
     set_fd_nonblocking(ipmi->fd);
     set_fd_closed_on_exec(ipmi->fd);
 
+    DPRINTF((15, "Connection established to <%s> via IPMI for [%s].\n",
+        ipmi->aux.ipmi.host, ipmi->name));
+
     /*  Require the connection to be up for a minimum length of time before
      *    resetting the reconnect delay back to the minimum.
      */
@@ -467,6 +470,9 @@ static void fail_ipmi_connect(obj_t *ipmi)
 
     /*  Set timer for establishing new connection attempt.
      */
+    DPRINTF((15, "Reconnect attempt to <%s> via IPMI for [%s] in %ds.\n",
+        ipmi->aux.ipmi.host, ipmi->name, ipmi->aux.ipmi.delay * 1000));
+
     ipmi->aux.ipmi.timer = tpoll_timeout_relative(tp_global,
         (callback_f) connect_ipmi_obj, ipmi,
         ipmi->aux.ipmi.delay * 1000);
