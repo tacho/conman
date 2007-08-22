@@ -1,3 +1,10 @@
+2007-08-21  Chris Dunlap  <cdunlap@llnl.gov>
+
+	* server-ipmi.c: Rewrote connection logic to be purely event-driven
+	  and use an exponential backoff for connect retries.  Updated to new
+	  libipmiconsole API.
+	* server.h: Added reconnect delay to struct ipmi_obj.
+
 2007-08-20  Chris Dunlap  <cdunlap@llnl.gov>
 
 	* server-conf.c (parse_console_directive):

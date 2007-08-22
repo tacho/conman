@@ -39,13 +39,19 @@
 #include "log.h"
 #include "server.h"
 #include "tpoll.h"
+#include "util.h"
+#include "util-file.h"
 #include "util-str.h"
 
 
 static int parse_key(unsigned char *dst, const char *src, size_t dstlen);
-static int create_ipmi_ctx(obj_t *ipmi);
-static int connect_ipmi_obj(obj_t *ipmi);
 static void disconnect_ipmi_obj(obj_t *ipmi);
+static int connect_ipmi_obj(obj_t *ipmi);
+static int initiate_ipmi_connect(obj_t *ipmi);
+static int complete_ipmi_connect(obj_t *ipmi);
+static void fail_ipmi_connect(obj_t *ipmi);
+static int create_ipmi_ctx(obj_t *ipmi);
+static void reset_ipmi_delay(obj_t *ipmi);
 
 extern tpoll_t tp_global;               /* defined in server.c */
 static int ipmi_engine_started = 0;
@@ -89,59 +95,6 @@ void ipmi_fini(void)
     ipmiconsole_engine_teardown();
     ipmi_engine_started = 0;
     return;
-}
-
-
-static int parse_key(unsigned char *dst, const char *src, size_t dstlen)
-{
-/*  Parses the NUL-terminated key string 'src', writing the result into
- *    buffer 'dst' of length 'dstlen'.  The 'dst' buffer will always be
- *    NUL-terminated.
- *  The 'src' is interpreted as ASCII text unless it is prefixed with
- *    "0x" or "0X" and contains only hexadecimal digits (ie, [0-9A-Fa-f]).
- *    A hexadecimal string will be converted to binary and may contain
- *    embedded NUL characters.
- *  Returns the length of the key (in bytes) written to 'dst'
- *    (not including the final NUL-termination character),
- *    or -1 if truncation occurred.
- */
-    const char *hexdigits = "0123456789ABCDEFabcdef";
-    char       *dstend;
-    char       *p;
-    char       *q;
-    int         n;
-
-    assert(dst != NULL);
-    assert(src != NULL);
-
-    if ((src[0] == '0') && (src[1] == 'x' || src[1] == 'X')
-            && (strspn(src + 2, hexdigits) == strlen(src + 2))) {
-        dstend = dst + dstlen - 1;      /* reserve space for terminating NUL */
-        p = (char *) src + 2;
-        q = dst;
-        n = 0;
-        while (*p && (q < dstend)) {
-            if (((p - src) & 0x01) == 0) {
-                *q = (toint(*p++) << 4) & 0xf0;
-                n++;
-            }
-            else {
-                *q++ |= (toint(*p++)) & 0x0f;
-            }
-        }
-        dst[n] = '\0';
-        if (*p) {
-            return(-1);
-        }
-    }
-    else {
-        if (strlcpy(dst, src, dstlen) >= dstlen) {
-            return(-1);
-        }
-        n = strlen(dst);
-    }
-    assert(n < dstlen);
-    return(n);
 }
 
 
@@ -221,6 +174,59 @@ int parse_ipmi_opts(
 }
 
 
+static int parse_key(unsigned char *dst, const char *src, size_t dstlen)
+{
+/*  Parses the NUL-terminated key string 'src', writing the result into
+ *    buffer 'dst' of length 'dstlen'.  The 'dst' buffer will always be
+ *    NUL-terminated.
+ *  The 'src' is interpreted as ASCII text unless it is prefixed with
+ *    "0x" or "0X" and contains only hexadecimal digits (ie, [0-9A-Fa-f]).
+ *    A hexadecimal string will be converted to binary and may contain
+ *    embedded NUL characters.
+ *  Returns the length of the key (in bytes) written to 'dst'
+ *    (not including the final NUL-termination character),
+ *    or -1 if truncation occurred.
+ */
+    const char *hexdigits = "0123456789ABCDEFabcdef";
+    char       *dstend;
+    char       *p;
+    char       *q;
+    int         n;
+
+    assert(dst != NULL);
+    assert(src != NULL);
+
+    if ((src[0] == '0') && (src[1] == 'x' || src[1] == 'X')
+            && (strspn(src + 2, hexdigits) == strlen(src + 2))) {
+        dstend = dst + dstlen - 1;      /* reserve space for terminating NUL */
+        p = (char *) src + 2;
+        q = dst;
+        n = 0;
+        while (*p && (q < dstend)) {
+            if (((p - src) & 0x01) == 0) {
+                *q = (toint(*p++) << 4) & 0xf0;
+                n++;
+            }
+            else {
+                *q++ |= (toint(*p++)) & 0x0f;
+            }
+        }
+        dst[n] = '\0';
+        if (*p) {
+            return(-1);
+        }
+    }
+    else {
+        if (strlcpy(dst, src, dstlen) >= dstlen) {
+            return(-1);
+        }
+        n = strlen(dst);
+    }
+    assert(n < dstlen);
+    return(n);
+}
+
+
 obj_t * create_ipmi_obj(server_conf_t *conf, char *name,
     ipmiopt_t *iconf, char *host, char *errbuf, int errlen)
 {
@@ -261,6 +267,7 @@ obj_t * create_ipmi_obj(server_conf_t *conf, char *name,
     ipmi->aux.ipmi.logfile = NULL;
     ipmi->aux.ipmi.state = CONMAN_IPMI_DOWN;
     ipmi->aux.ipmi.timer = -1;
+    ipmi->aux.ipmi.delay = IPMI_MIN_TIMEOUT;
     conf->numIpmiObjs++;
     /*
      *  Add obj to the master conf->objs list.
@@ -274,6 +281,7 @@ obj_t * create_ipmi_obj(server_conf_t *conf, char *name,
 int open_ipmi_obj(obj_t *ipmi)
 {
 /*  (Re)opens the specified 'ipmi' obj.
+ *    A no-op is performed if the connection is already in the pending state.
  *  Returns 0 if the IPMI console is sucessfully opened; o/w, returns -1.
  */
     int rc = 0;
@@ -284,16 +292,191 @@ int open_ipmi_obj(obj_t *ipmi)
     if (ipmi->aux.ipmi.state == CONMAN_IPMI_UP) {
         disconnect_ipmi_obj(ipmi);
     }
-    else {
-        if (create_ipmi_ctx(ipmi) < 0) {
-            return(-1);
-        }
+    if (ipmi->aux.ipmi.state == CONMAN_IPMI_DOWN) {
         rc = connect_ipmi_obj(ipmi);
     }
     DPRINTF((9, "Opened [%s] ipmi: fd=%d host=%s state=%d.\n",
         ipmi->name, ipmi->fd, ipmi->aux.ipmi.host,
         (int) ipmi->aux.ipmi.state));
     return(rc);
+}
+
+
+static void disconnect_ipmi_obj(obj_t *ipmi)
+{
+/*  Closes the existing connection with the specified 'ipmi' obj.
+ */
+    assert(ipmi->aux.ipmi.state != CONMAN_IPMI_DOWN);
+
+    DPRINTF((10, "Disconnecting from <%s> via IPMI for [%s].\n",
+        ipmi->aux.ipmi.host, ipmi->name));
+
+    if (ipmi->aux.ipmi.timer >= 0) {
+        (void) tpoll_timeout_cancel(tp_global, ipmi->aux.ipmi.timer);
+        ipmi->aux.ipmi.timer = -1;
+    }
+    if (ipmi->fd >= 0) {
+        if (close(ipmi->fd) < 0) {
+            log_msg(LOG_ERR,
+                "Unable to close connection to <%s> for console [%s]: %s",
+                ipmi->aux.ipmi.host, ipmi->name, strerror(errno));
+        }
+        ipmi->fd = -1;
+    }
+    if (ipmi->aux.ipmi.ctx) {
+        if (ipmiconsole_ctx_destroy(ipmi->aux.ipmi.ctx) < 0) {
+            int e = ipmiconsole_ctx_errnum(ipmi->aux.ipmi.ctx);
+            log_msg(LOG_ERR,
+                "Unable to destroy IPMI ctx for console [%s]: %s",
+                ipmi->name, ipmiconsole_ctx_strerror(e));
+        }
+        ipmi->aux.ipmi.ctx = NULL;
+    }
+    /*  Notify linked objs when transitioning from an UP state.
+     */
+    if (ipmi->aux.ipmi.state == CONMAN_IPMI_UP) {
+        write_notify_msg(ipmi, LOG_NOTICE,
+            "Console [%s] disconnected from <%s>",
+            ipmi->name, ipmi->aux.ipmi.host);
+    }
+    ipmi->aux.ipmi.state = CONMAN_IPMI_DOWN;
+    return;
+}
+
+
+static int connect_ipmi_obj(obj_t *ipmi)
+{
+/*  Establishes a non-blocking connect with the specified (ipmi) obj.
+ *  Returns 0 if the connection is successfully completed; o/w, returns -1.
+ */
+    int rc = 0;
+
+    assert(ipmi->aux.ipmi.state != CONMAN_IPMI_UP);
+
+    if (ipmi->aux.ipmi.timer >= 0) {
+        (void) tpoll_timeout_cancel(tp_global, ipmi->aux.ipmi.timer);
+        ipmi->aux.ipmi.timer = -1;
+    }
+
+    if (ipmi->aux.ipmi.state == CONMAN_IPMI_DOWN) {
+        rc = initiate_ipmi_connect(ipmi);
+    }
+    else if (ipmi->aux.ipmi.state == CONMAN_IPMI_PENDING) {
+        rc = complete_ipmi_connect(ipmi);
+    }
+    else {
+        log_err(0, "Console [%s] is in unexpected ipmi state=%d",
+            ipmi->aux.ipmi.state);
+    }
+
+    if (rc < 0) {
+        fail_ipmi_connect(ipmi);
+    }
+    return(rc);
+}
+
+
+static int initiate_ipmi_connect(obj_t *ipmi)
+{
+/*  Initiates an IPMI connection attempt.
+ *  Returns 0 if the connection initiation is successful, or -1 on error.
+ */
+    int rc;
+
+    assert(ipmi->aux.ipmi.state == CONMAN_IPMI_DOWN);
+
+    if (create_ipmi_ctx(ipmi) < 0) {
+        return(-1);
+    }
+    DPRINTF((10, "Connecting to <%s> via IPMI for [%s].\n",
+        ipmi->aux.ipmi.host, ipmi->name));
+
+    rc = ipmiconsole_engine_submit(ipmi->aux.ipmi.ctx, connect_ipmi_obj, ipmi);
+    if (rc < 0) {
+        return(-1);
+    }
+    ipmi->aux.ipmi.state = CONMAN_IPMI_PENDING;
+    /*
+     *  ipmiconsole_engine_submit() should always call its callback function,
+     *    at which point the connection will be established or retried.
+     *  This is simply an additional safety measure in case it doesn't.
+     */
+    ipmi->aux.ipmi.timer = tpoll_timeout_relative(tp_global,
+        (callback_f) connect_ipmi_obj, ipmi,
+        IPMI_CONNECT_TIMEOUT * 1000);
+
+    return(0);
+}
+
+
+static int complete_ipmi_connect(obj_t *ipmi)
+{
+/*  Completes an IPMI connection attempt.
+ *  Returns 0 if the connection is successfully established, or -1 on error.
+ */
+    int status;
+
+    assert(ipmi->aux.ipmi.state == CONMAN_IPMI_PENDING);
+
+    status = ipmiconsole_ctx_status(ipmi->aux.ipmi.ctx);
+    if (status != IPMICONSOLE_CONTEXT_STATUS_SOL_ESTABLISHED) {
+        return(-1);
+    }
+    if ((ipmi->fd = ipmiconsole_ctx_fd(ipmi->aux.ipmi.ctx)) < 0) {
+        return(-1);
+    }
+    set_fd_nonblocking(ipmi->fd);
+    set_fd_closed_on_exec(ipmi->fd);
+
+    /*  Require the connection to be up for a minimum length of time before
+     *    resetting the reconnect delay back to the minimum.
+     */
+    ipmi->aux.ipmi.timer = tpoll_timeout_relative(tp_global,
+        (callback_f) reset_ipmi_delay, ipmi, IPMI_MIN_TIMEOUT * 1000);
+
+    /*  Notify linked objs when transitioning into an UP state.
+     */
+    write_notify_msg(ipmi, LOG_INFO, "Console [%s] connected to <%s>",
+        ipmi->name, ipmi->aux.ipmi.host);
+
+    ipmi->aux.ipmi.state = CONMAN_IPMI_UP;
+    return (0);
+}
+
+
+static void fail_ipmi_connect(obj_t *ipmi)
+{
+/*  Logs an error message for the connection failure and sets a timer to
+ *    establish a new connection attempt.
+ */
+    ipmi->aux.ipmi.state = CONMAN_IPMI_DOWN;
+
+    if (!ipmi->aux.ipmi.ctx) {
+        log_msg(LOG_INFO,
+            "Unable to create IPMI ctx for console [%s]", ipmi->name);
+    }
+    else {
+        int e = ipmiconsole_ctx_errnum(ipmi->aux.ipmi.ctx);
+        log_msg(LOG_INFO,
+            "Unable to connect to <%s> via IPMI to console [%s]: %s",
+            ipmi->aux.ipmi.host, ipmi->name, ipmiconsole_ctx_strerror(e));
+    }
+
+    assert(ipmi->aux.ipmi.delay >= IPMI_MIN_TIMEOUT);
+    assert(ipmi->aux.ipmi.delay <= IPMI_MAX_TIMEOUT);
+
+    /*  Set timer for establishing new connection attempt.
+     */
+    ipmi->aux.ipmi.timer = tpoll_timeout_relative(tp_global,
+        (callback_f) connect_ipmi_obj, ipmi,
+        ipmi->aux.ipmi.delay * 1000);
+
+    /*  Update timer delay via exponential backoff.
+     */
+    if (ipmi->aux.ipmi.delay < IPMI_MAX_TIMEOUT) {
+        ipmi->aux.ipmi.delay = MIN(ipmi->aux.ipmi.delay * 2, IPMI_MAX_TIMEOUT);
+    }
+    return;
 }
 
 
@@ -305,16 +488,8 @@ static int create_ipmi_ctx(obj_t *ipmi)
     struct ipmiconsole_ipmi_config ipmi_config;
     struct ipmiconsole_protocol_config protocol_config;
 
-    assert(ipmi != NULL);
-    assert(is_ipmi_obj(ipmi));
+    assert(ipmi->aux.ipmi.ctx == NULL);
 
-    /*  Only create a ctx object if one doesn't already exist.
-     */
-    if (ipmi->aux.ipmi.ctx) {
-        return(0);
-    }
-    /*  Setup configuration structs for the ctx creation.
-     */
     ipmi_config.username = ipmi->aux.ipmi.iconf.username;
     ipmi_config.password = ipmi->aux.ipmi.iconf.password;
     ipmi_config.k_g = ipmi->aux.ipmi.iconf.kg;
@@ -329,145 +504,33 @@ static int create_ipmi_ctx(obj_t *ipmi)
     protocol_config.retransmission_keepalive_timeout_len = -1;
     protocol_config.acceptable_packet_errors_count = -1;
     protocol_config.maximum_retransmission_count = -1;
+    protocol_config.engine_flags = 0;
     protocol_config.debug_flags = 0;
     protocol_config.security_flags = 0;
     protocol_config.workaround_flags = 0;
 
     ipmi->aux.ipmi.ctx = ipmiconsole_ctx_create(
         ipmi->aux.ipmi.host, &ipmi_config, &protocol_config);
+
     if (!ipmi->aux.ipmi.ctx) {
         return(-1);
     }
-    ipmi->aux.ipmi.state = CONMAN_IPMI_DOWN;
     return(0);
 }
 
 
-static int connect_ipmi_obj(obj_t *ipmi)
+static void reset_ipmi_delay(obj_t *ipmi)
 {
-    int rc = 0;
-
-    assert(ipmi != NULL);
+/*  Resets the 'ipmi' obj's delay between reconnect attempts.
+ */
     assert(is_ipmi_obj(ipmi));
-    assert(ipmi->aux.ipmi.state != CONMAN_IPMI_UP);
-    assert(ipmi->aux.ipmi.ctx != NULL);
 
-    if (ipmi->aux.ipmi.timer >= 0) {
-        (void) tpoll_timeout_cancel(tp_global, ipmi->aux.ipmi.timer);
-        ipmi->aux.ipmi.timer = -1;
-    }
-    if (ipmi->aux.ipmi.state == CONMAN_IPMI_DOWN) {
-        /*
-         *  Do a non-blocking submit of this ctx to the engine.
-         */
-        DPRINTF((10, "Connecting to <%s> for [%s].\n",
-            ipmi->aux.ipmi.host, ipmi->name));
-        rc = ipmiconsole_engine_submit(ipmi->aux.ipmi.ctx);
-        if (rc < 0) {
-            log_msg(LOG_WARNING,
-                "Unable to submit ipmi ctx to engine for [%s]: %s", ipmi->name,
-                ipmiconsole_ctx_strerror(ipmiconsole_ctx_errnum(
-                    ipmi->aux.ipmi.ctx)));
-            return(-1);
-        }
-        if ((ipmi->fd = ipmiconsole_ctx_fd(ipmi->aux.ipmi.ctx)) < 0) {
-            log_msg(LOG_WARNING,
-                "Unable to get a file descriptor for [%s]", ipmi->name);
-            return(-1);
-        }
-        ipmi->aux.ipmi.state = CONMAN_IPMI_PENDING;
-        ipmi->aux.ipmi.timer = tpoll_timeout_relative(tp_global,
-            (callback_f) connect_ipmi_obj,
-            ipmi,
-            IPMI_STATUS_CHECK_TIMEOUT * 1000);
-        return(-1);
-    }
-    else if (ipmi->aux.ipmi.state == CONMAN_IPMI_PENDING) {
-        /*
-         *  Check with the engine to see if the connection was successful.
-         */
-        rc = ipmiconsole_ctx_status(ipmi->aux.ipmi.ctx);
-        if (rc < 0) {
-            /* something wonky happened and we couldn't get the conn status */
-            log_msg(LOG_WARNING,
-                "Error retrieving ipmi ctx status from engine for [%s]",
-                ipmi->name);
-            disconnect_ipmi_obj(ipmi);
-            return(-1);
-        }
+    ipmi->aux.ipmi.delay = IPMI_MIN_TIMEOUT;
 
-        if (rc == IPMICONSOLE_CONTEXT_STATUS_ERROR) {
-            /* an error occurred with the ipmi connection */
-            rc = ipmiconsole_ctx_errnum(ipmi->aux.ipmi.ctx);
-            log_msg(LOG_WARNING, "Error establishing ipmi link for [%s]: %s",
-                ipmi->name, ipmiconsole_ctx_strerror(rc));
-            ipmi->fd = -1;
-            disconnect_ipmi_obj(ipmi);
-            return(-1);
-        }
-
-        if (rc == IPMICONSOLE_CONTEXT_STATUS_NONE) {
-            /* wait a bit longer */
-            ipmi->aux.ipmi.timer = tpoll_timeout_relative(tp_global,
-                (callback_f) connect_ipmi_obj, ipmi,
-                IPMI_STATUS_CHECK_TIMEOUT * 1000);
-            return(-1);
-        }
-
-        if (rc == IPMICONSOLE_CONTEXT_STATUS_SOL_ESTABLISHED) {
-            /* success! */
-            write_notify_msg(ipmi, LOG_INFO,
-                "Console [%s] connected to <%s> via IPMI",
-                ipmi->name, ipmi->aux.ipmi.host);
-            ipmi->aux.ipmi.state = CONMAN_IPMI_UP;
-            return(0);
-        }
-        else {
-            log_msg(LOG_WARNING,
-                "Unrecognize ipmi ctx status value %d for [%s]",
-                rc, ipmi->name);
-            disconnect_ipmi_obj(ipmi);
-            return(-1);
-        }
-    }
-    return(rc);
-}
-
-
-static void disconnect_ipmi_obj(obj_t *ipmi)
-{
-    assert(ipmi != NULL);
-    assert(is_ipmi_obj(ipmi));
-    int rc;
-
-    if (ipmi->aux.ipmi.timer >= 0) {
-        (void) tpoll_timeout_cancel(tp_global, ipmi->aux.ipmi.timer);
-        ipmi->aux.ipmi.timer = -1;
-    }
-    if (ipmi->fd >= 0) {
-        close(ipmi->fd);
-        ipmi->fd = -1;
-    }
-    if (ipmiconsole_ctx_destroy(ipmi->aux.ipmi.ctx) < 0) {
-        ipmi->aux.ipmi.timer = tpoll_timeout_relative(tp_global,
-            (callback_f) disconnect_ipmi_obj, ipmi,
-            IPMI_STATUS_CHECK_TIMEOUT * 1000);
-    }
-    else {
-        ipmi->aux.ipmi.ctx = NULL;
-        if (ipmi->aux.ipmi.state == CONMAN_IPMI_UP) {
-            write_notify_msg(ipmi, LOG_NOTICE,
-                "Console [%s] disconnected from <%s> via IPMI",
-                ipmi->name, ipmi->aux.ipmi.host);
-        }
-        rc = create_ipmi_ctx(ipmi);
-        if (rc < 0)
-            log_err(rc, "create_ipmi_ctx failed");
-        ipmi->aux.ipmi.state = CONMAN_IPMI_DOWN;
-        ipmi->aux.ipmi.timer = tpoll_timeout_relative(tp_global,
-            (callback_f) connect_ipmi_obj, ipmi,
-            IPMI_CONNECT_RETRY_TIMEOUT * 1000);
-    }
+    /*  Also reset the timer ID since this routine is only invoked via a timer.
+     */
+    ipmi->aux.ipmi.timer = -1;
+    return;
 }
 
 

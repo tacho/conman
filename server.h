@@ -62,12 +62,13 @@
 #define TELNET_MIN_TIMEOUT              15
 
 #ifdef WITH_FREEIPMI
+#define IPMI_ENGINE_CONSOLES_PER_THREAD 128
 #define IPMI_MAX_USER_LEN               IPMI_MAX_USER_NAME_LENGTH
 #define IPMI_MAX_PSWD_LEN               IPMI_2_0_MAX_PASSWORD_LENGTH
 #define IPMI_MAX_KG_LEN                 IPMI_MAX_K_G_LENGTH
-#define IPMI_ENGINE_CONSOLES_PER_THREAD 128
-#define IPMI_STATUS_CHECK_TIMEOUT       5       /* seconds */
-#define IPMI_CONNECT_RETRY_TIMEOUT      30      /* seconds */
+#define IPMI_CONNECT_TIMEOUT            300
+#define IPMI_MAX_TIMEOUT                1800
+#define IPMI_MIN_TIMEOUT                60
 #endif /* WITH_FREEIPMI */
 
 
@@ -169,12 +170,13 @@ typedef enum ipmi_connect_state {
 } ipmi_state_t;
 
 typedef struct ipmi_obj {               /* IPMI AUX OBJ DATA:                */
-    char            *host;              /*  remote bmc host name/ip          */
+    char            *host;              /*  remote bmc host name (or ip)     */
     ipmiopt_t        iconf;             /*  conf to connect to bmc           */
-    ipmictx_t       *ctx;               /*  ipmi session ctx obj             */
-    struct base_obj *logfile;           /*  log obj ref for console          */
+    ipmictx_t       *ctx;               /*  ipmi session ctx ptr             */
+    struct base_obj *logfile;           /*  log obj ref for console replay   */
     ipmi_state_t     state;             /*  connection state                 */
     int              timer;             /*  timer id                         */
+    int              delay;             /*  secs 'til next reconnect attempt */
 } ipmi_obj_t;
 #endif /* WITH_FREEIPMI */
 
