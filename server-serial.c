@@ -94,7 +94,9 @@ int parse_serial_opts(
 {
 /*  Parses 'str' for serial device options 'opts'.
  *    The 'opts' struct should be initialized to a default value.
- *    The 'str' string is of the form "<bps>,<databits><parity><stopbits>".
+ *    The 'str' string is of the form
+ *      "<bps>,<databits><parity><stopbits>[,<keyword>]".
+ *    Supported keywords are: echo.
  *  Returns 0 and updates the 'opts' struct on success; o/w, returns -1
  *    (writing an error message into 'errbuf' if defined).
  */
@@ -102,6 +104,7 @@ int parse_serial_opts(
     seropt_t optsTmp;
     int bpsTmp;
     char parityTmp;
+    char keyword[64];
 
     assert(opts != NULL);
 
@@ -117,8 +120,8 @@ int parse_serial_opts(
         return(-1);
     }
 
-    n = sscanf(str, "%d,%d%c%d", &bpsTmp, &optsTmp.databits,
-        &parityTmp, &optsTmp.stopbits);
+    n = sscanf(str, "%d,%d%c%d,%63s", &bpsTmp, &optsTmp.databits,
+        &parityTmp, &optsTmp.stopbits, keyword);
 
     if (n >= 1) {
         optsTmp.bps = int_to_bps(bpsTmp);
@@ -167,7 +170,17 @@ int parse_serial_opts(
             return(-1);
         }
     }
-
+    if (n >= 5) {
+        if (!strcasecmp("echo", keyword)) {
+            optsTmp.echo = 1;
+        }
+        else {
+            if ((errbuf != NULL) && (errlen > 0))
+                snprintf(errbuf, errlen,
+                    "invalid seropt keyword [%s]", keyword);
+            return(-1);
+        }
+    }
     *opts = optsTmp;
     return(0);
 }
@@ -279,6 +292,11 @@ void set_serial_opts(struct termios *tty, obj_t *serial, seropt_t *opts)
     }
     else /* (opts->stopbits == 1) */ {  /* safe default in case value is bad */
         tty->c_cflag &= ~CSTOPB;
+    }
+
+    if (opts->echo) {
+        tty->c_lflag |= ECHO;
+        tty->c_lflag |= ECHOCTL;
     }
 
     return;

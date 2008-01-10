@@ -243,6 +243,7 @@ server_conf_t * create_server_conf(void)
     conf->globalSerOpts.databits = DEFAULT_SEROPT_DATABITS;
     conf->globalSerOpts.parity = DEFAULT_SEROPT_PARITY;
     conf->globalSerOpts.stopbits = DEFAULT_SEROPT_STOPBITS;
+    conf->globalSerOpts.echo = DEFAULT_SEROPT_ECHO;
     conf->enableKeepAlive = 1;
     conf->enableLoopBack = 0;
     conf->enableTCPWrap = 0;

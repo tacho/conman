@@ -45,6 +45,7 @@
 #define DEFAULT_SEROPT_DATABITS         8
 #define DEFAULT_SEROPT_PARITY           0
 #define DEFAULT_SEROPT_STOPBITS         1
+#define DEFAULT_SEROPT_ECHO             0
 
 #define PROCESS_MAX_COUNT               3
 #define PROCESS_MIN_TIMEOUT             60
@@ -108,6 +109,7 @@ typedef struct serial_opt {             /* SERIAL OBJ OPTIONS:               */
     int              databits;          /*  databits (5-8)                   */
     int              parity;            /*  parity (0=NONE,1=ODD,2=EVEN)     */
     int              stopbits;          /*  stopbits (1-2)                   */
+    unsigned         echo:1;            /*  enable local echo                */
 } seropt_t;
 
 typedef struct serial_obj {             /* SERIAL AUX OBJ DATA:              */
