@@ -98,6 +98,7 @@ req_t * create_req(void)
     req->consoles = list_create((ListDelF) destroy_string);
     req->command = CONMAN_CMD_NONE;
     req->enableBroadcast = 0;
+    req->enableEcho = 0;
     req->enableForce = 0;
     req->enableJoin = 0;
     req->enableQuiet = 0;
