@@ -361,8 +361,8 @@ static int perform_echo_esc(client_conf_t *conf, char c)
         return(1);
     get_tty_mode(&tty, STDIN_FILENO);
     tty.c_lflag ^= ECHO;
-    conf->req->enableEcho ^= 1;
     set_tty_mode(&tty, STDIN_FILENO);
+    conf->req->enableEcho ^= 1;
     return(1);
 }
 

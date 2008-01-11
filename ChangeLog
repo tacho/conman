@@ -1,3 +1,8 @@
+2008-01-11  Chris Dunlap  <cdunlap@llnl.gov>
+
+	* client-tty.c (perform_echo_esc): Moved enableEcho toggle outside of
+	  the (get|set)_tty_mode block.
+
 2008-01-10  Chris Dunlap  <cdunlap@llnl.gov>
 
 	* common.h, common.c, client-tty.c:
