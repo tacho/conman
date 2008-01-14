@@ -425,7 +425,7 @@ static int perform_help_esc(client_conf_t *conf, char c)
     if (conf->req->command == CONMAN_CMD_CONNECT) {
         write_esc_char(ESC_CHAR_ECHO, tmp);
         n = append_format_string(buf, sizeof(buf),
-            "  %2s%-2s -  %s echoing of input.\r\n", esc, tmp,
+            "  %2s%-2s -  %s echoing of client input.\r\n", esc, tmp,
             conf->req->enableEcho ? "Disable" : "Enable");
     }
 

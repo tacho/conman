@@ -1,5 +1,7 @@
 2008-01-14  Chris Dunlap  <cdunlap@llnl.gov>
 
+	* client-tty.c (perform_help_esc): Tweaked verbage for &E help.
+
 	* common.c (get_tty_raw): Cleared ECHOCTL.
 	* server-serial.c (set_serial_opts): Removed ECHOCTL.
 
