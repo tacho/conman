@@ -1,3 +1,8 @@
+2008-01-14  Chris Dunlap  <cdunlap@llnl.gov>
+
+	* common.c (get_tty_raw): Cleared ECHOCTL.
+	* server-serial.c (set_serial_opts): Removed ECHOCTL.
+
 2008-01-11  Chris Dunlap  <cdunlap@llnl.gov>
 
 	* client-tty.c (perform_echo_esc): Moved enableEcho toggle outside of

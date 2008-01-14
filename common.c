@@ -208,7 +208,7 @@ void get_tty_raw(struct termios *tty, int fd)
 
     /*  Disable echo, canonical mode, extended input processing, signal chars.
      */
-    tty->c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);
+    tty->c_lflag &= ~(ECHO | ECHOCTL | ICANON | IEXTEN | ISIG);
 
     /*  read() does not return until data is present (may block indefinitely).
      */

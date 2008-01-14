@@ -296,7 +296,6 @@ void set_serial_opts(struct termios *tty, obj_t *serial, seropt_t *opts)
 
     if (opts->echo) {
         tty->c_lflag |= ECHO;
-        tty->c_lflag |= ECHOCTL;
     }
 
     return;
