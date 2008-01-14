@@ -1,5 +1,7 @@
 2008-01-14  Chris Dunlap  <cdunlap@llnl.gov>
 
+	* man/conman.1.in: Documented &E client esc char.
+
 	* client-tty.c (perform_help_esc): Tweaked verbage for &E help.
 
 	* common.c (get_tty_raw): Cleared ECHOCTL.
