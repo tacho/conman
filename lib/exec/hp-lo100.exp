@@ -10,12 +10,14 @@
 # This file is part of ConMan: The Console Manager.
 # For details, see <http://home.gna.org/conman/>.
 ###############################################################################
-# This script connects to a console managed by the HP Integrated Lights-Out
-# (iLO) management processor using the telnet protocol.
+# This script connects to a console managed by HP's "Lights Out 100" option
+# using the telnet protocol.  The LO100 is a traditional IPMI BMC and does
+# not share hardware or firmware with the HP Integrated Lights-Out (iLO)
+# management processor.
 #
 # This script can be specified in "conman.conf" in the following manner:
 #
-#   console name="zot" dev="/path/to/hp-lo.exp HOST PORT USER PSWD"
+#   console name="zot" dev="/path/to/hp-lo100.exp HOST PORT USER PSWD"
 #
 # HOST is the hostname of the remote server.
 # PORT is the port number (typically 23).
@@ -38,7 +40,7 @@
 # Set "log_user" to 1 to show the underlying dialogue establishing a connection
 #   to the console.
 ##
-  log_user 1
+  log_user 0
 
 ##
 # The "timeout" specifies the number of seconds before the connection attempt
@@ -123,7 +125,7 @@ set state 0
 #   1: connected to $host:$port
 #   2: sent $user
 #   3: sent $pswd
-#   4: sent "Q" ESC+Q
+#   4: sent ESC+Q
 #   5: connected to lo100
 #
 if {! [info exists host]} {
@@ -150,13 +152,6 @@ if {[catch "spawn telnet $host $port" spawn_result]} {
   exit 1
 }
 expect {
-  -re "Virtual Serial Port active\[^\r]*\r+\n(\r+\n)?" {
-    if {$state == 4} {
-      send "\r"
-      incr state
-    }
-    ; # success
-  }
   -re "^Connected to " {
     if {$state == 0} {
       incr state
@@ -167,7 +162,7 @@ expect {
     send_user "Error: $expect_out(1,string).\r\n"
     exit 1
   }
-  -gl "Login incorrect." {
+  -gl "Login incorrect" {
     send_user "Error: Permission denied.\r\n"
     exit 1
   }
@@ -211,7 +206,7 @@ expect {
   }
   -gl "/./-> \$" {
     if {$state == 3} {
-      send "Q\r"
+      send "\033Q\r"
       incr state
     }
     exp_continue -continue_timer
@@ -220,12 +215,11 @@ expect {
     if {$state != 4} {
     	exp_continue -continue_timer
     }
+    incr state
     ; # success
   }
 }
 send_user "Connection established via telnet (pid $spawn_result).\r\n"
-
-send_user "INFO: $host : $port $user $pswd $state\r\n"
 
 set timeout 5
 interact {
@@ -237,7 +231,6 @@ interact {
   -o
   # Disable "ESC (" sequence for stopping console and returning to CLI prompt.
   -re "/./-> \$" {
-    send "Q\r"
-    #expect -re "Virtual Serial Port active\[^\r]*\r+\n(\r+\n)?"
+    send "\033Q\r"
   }
 }
