@@ -1,7 +1,12 @@
 /*****************************************************************************
  *  $Id$
  *****************************************************************************
- *  Written by Levi Pearson <lpearson@lnxi.com>.
+ *  Contributed by Levi Pearson <lpearson@lnxi.com>.
+ *
+ *  Copyright (C) 2001-2007 The Regents of the University of California.
+ *  Produced at Lawrence Livermore National Laboratory.
+ *  Written by Chris Dunlap <cdunlap@llnl.gov>.
+ *  UCRL-CODE-2002-009.
  *
  *  This file is part of ConMan: The Console Manager.
  *  For details, see <http://home.gna.org/conman/>.
@@ -44,7 +49,7 @@
 #include "util-str.h"
 
 
-static int parse_key(unsigned char *dst, const char *src, size_t dstlen);
+static int parse_key(char *dst, const char *src, size_t dstlen);
 static void disconnect_ipmi_obj(obj_t *ipmi);
 static int connect_ipmi_obj(obj_t *ipmi);
 static int initiate_ipmi_connect(obj_t *ipmi);
@@ -89,10 +94,16 @@ void ipmi_fini(void)
 {
 /*  Stops the ipmiconsole engine.
  */
+    /*  Setting do_sol_session_cleanup to nonzero will cause
+     *    ipmiconsole_engine_teardown() to block until all active
+     *    ipmi sol sessions have been cleanly closed or timed-out.
+     */
+    int do_sol_session_cleanup = 1;
+
     if (!ipmi_engine_started) {
         return;
     }
-    ipmiconsole_engine_teardown();
+    ipmiconsole_engine_teardown(do_sol_session_cleanup);
     ipmi_engine_started = 0;
     return;
 }
@@ -158,7 +169,7 @@ int parse_ipmi_opts(
 #endif
     }
     if ((tok = strtok(NULL, separators))) {
-        n = parse_key(ioptsTmp.kg, tok, sizeof(ioptsTmp.kg));
+        n = parse_key((char *) ioptsTmp.kg, tok, sizeof(ioptsTmp.kg));
         if (n < 0) {
             if ((errbuf != NULL) && (errlen > 0)) {
                 snprintf(errbuf, errlen,
@@ -174,7 +185,7 @@ int parse_ipmi_opts(
 }
 
 
-static int parse_key(unsigned char *dst, const char *src, size_t dstlen)
+static int parse_key(char *dst, const char *src, size_t dstlen)
 {
 /*  Parses the NUL-terminated key string 'src', writing the result into
  *    buffer 'dst' of length 'dstlen'.  The 'dst' buffer will always be
@@ -324,12 +335,7 @@ static void disconnect_ipmi_obj(obj_t *ipmi)
         ipmi->fd = -1;
     }
     if (ipmi->aux.ipmi.ctx) {
-        if (ipmiconsole_ctx_destroy(ipmi->aux.ipmi.ctx) < 0) {
-            int e = ipmiconsole_ctx_errnum(ipmi->aux.ipmi.ctx);
-            log_msg(LOG_ERR,
-                "Unable to destroy IPMI ctx for console [%s]: %s",
-                ipmi->name, ipmiconsole_ctx_strerror(e));
-        }
+        ipmiconsole_ctx_destroy(ipmi->aux.ipmi.ctx);
         ipmi->aux.ipmi.ctx = NULL;
     }
     /*  Notify linked objs when transitioning from an UP state.
@@ -391,7 +397,8 @@ static int initiate_ipmi_connect(obj_t *ipmi)
     DPRINTF((10, "Connecting to <%s> via IPMI for [%s].\n",
         ipmi->aux.ipmi.host, ipmi->name));
 
-    rc = ipmiconsole_engine_submit(ipmi->aux.ipmi.ctx, connect_ipmi_obj, ipmi);
+    rc = ipmiconsole_engine_submit(ipmi->aux.ipmi.ctx,
+        (Ipmiconsole_callback) connect_ipmi_obj, ipmi);
     if (rc < 0) {
         return(-1);
     }
@@ -419,7 +426,7 @@ static int complete_ipmi_connect(obj_t *ipmi)
     assert(ipmi->aux.ipmi.state == CONMAN_IPMI_PENDING);
 
     status = ipmiconsole_ctx_status(ipmi->aux.ipmi.ctx);
-    if (status != IPMICONSOLE_CONTEXT_STATUS_SOL_ESTABLISHED) {
+    if (status != IPMICONSOLE_CTX_STATUS_SOL_ESTABLISHED) {
         return(-1);
     }
     if ((ipmi->fd = ipmiconsole_ctx_fd(ipmi->aux.ipmi.ctx)) < 0) {
@@ -493,6 +500,7 @@ static int create_ipmi_ctx(obj_t *ipmi)
  */
     struct ipmiconsole_ipmi_config ipmi_config;
     struct ipmiconsole_protocol_config protocol_config;
+    struct ipmiconsole_engine_config engine_config;
 
     assert(ipmi->aux.ipmi.ctx == NULL);
 
@@ -510,13 +518,13 @@ static int create_ipmi_ctx(obj_t *ipmi)
     protocol_config.retransmission_keepalive_timeout_len = -1;
     protocol_config.acceptable_packet_errors_count = -1;
     protocol_config.maximum_retransmission_count = -1;
-    protocol_config.engine_flags = 0;
-    protocol_config.debug_flags = 0;
-    protocol_config.security_flags = 0;
-    protocol_config.workaround_flags = 0;
+
+    engine_config.engine_flags = 0;
+    engine_config.behavior_flags = 0;
+    engine_config.debug_flags = 0;
 
     ipmi->aux.ipmi.ctx = ipmiconsole_ctx_create(
-        ipmi->aux.ipmi.host, &ipmi_config, &protocol_config);
+        ipmi->aux.ipmi.host, &ipmi_config, &protocol_config, &engine_config);
 
     if (!ipmi->aux.ipmi.ctx) {
         return(-1);

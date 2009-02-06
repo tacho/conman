@@ -1,3 +1,9 @@
+2009-02-05  Chris Dunlap  <cdunlap@llnl.gov>
+
+	* server.h: Removed include for freeipmi/ipmi-messaging-support-cmds.h.
+	* server-ipmi.c (parse_key): Changed prototype so first arg is a char.
+	* server-ipmi.c, server-obj.c: Updated to recent libipmiconsole API.
+
 2007-08-22  Chris Dunlap  <cdunlap@llnl.gov>
 
 	* server-ipmi.c (complete_ipmi_connect, fail_ipmi_connect):

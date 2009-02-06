@@ -210,12 +210,7 @@ void destroy_obj(obj_t *obj)
             free(obj->aux.ipmi.host);
         }
         if (obj->aux.ipmi.ctx) {
-            if (ipmiconsole_ctx_destroy(obj->aux.ipmi.ctx) < 0) {
-                log_msg(LOG_INFO,
-                    "Unable to destroy IPMI context for console [%s]: %s",
-                    obj->name, ipmiconsole_ctx_strerror(
-                        ipmiconsole_ctx_errnum(obj->aux.ipmi.ctx)));
-            }
+            ipmiconsole_ctx_destroy(obj->aux.ipmi.ctx);
         }
         break;
 #endif /* WITH_FREEIPMI */

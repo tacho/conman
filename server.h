@@ -30,7 +30,6 @@
 
 
 #ifdef WITH_FREEIPMI
-#include <freeipmi/ipmi-messaging-support-cmds.h>
 #include <ipmiconsole.h>
 #endif /* WITH_FREEIPMI */
 #include <netinet/in.h>                 /* for struct sockaddr_in            */
