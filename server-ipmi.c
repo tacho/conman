@@ -187,9 +187,9 @@ int parse_ipmi_opts(
 
 static int parse_key(char *dst, const char *src, size_t dstlen)
 {
-/*  Parses the NUL-terminated key string 'src', writing the result into
- *    buffer 'dst' of length 'dstlen'.  The 'dst' buffer will always be
- *    NUL-terminated.
+/*  Parses the NUL-terminated key string 'src', writing the result into buffer
+ *    'dst' of length 'dstlen'.  The 'dst' buffer will be NUL-terminated if
+ *    'dstlen' > 0.
  *  The 'src' is interpreted as ASCII text unless it is prefixed with
  *    "0x" or "0X" and contains only hexadecimal digits (ie, [0-9A-Fa-f]).
  *    A hexadecimal string will be converted to binary and may contain

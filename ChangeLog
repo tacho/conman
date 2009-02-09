@@ -1,5 +1,7 @@
 2009-02-09  Chris Dunlap  <cdunlap@llnl.gov>
 
+	* server-ipmi.c (parse_key): Tweaked function comment.
+
 	* server-ipmi.c: Fixed typos in comments.
 
 	* server-ipmi.c: Renamed ipmi_engine_started to is_ipmi_engine_started.
