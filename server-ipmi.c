@@ -116,7 +116,7 @@ int parse_ipmi_opts(
  *    The 'iopts' struct should be initialized to a default value.
  *    The 'str' string is of the form "[<username>[,<password>[,<K_g key>]]]".
  *  An empty 'str' is valid and denotes specifying no username & password.
- *  Returns 0 and updates the 'iopts' struct on sucess; o/w, returns -1
+ *  Returns 0 and overwrites the 'iopts' struct on success; o/w, returns -1
  *    (writing an error message into 'errbuf' if defined).
  */
     ipmiopt_t ioptsTmp;
@@ -293,7 +293,7 @@ int open_ipmi_obj(obj_t *ipmi)
 {
 /*  (Re)opens the specified 'ipmi' obj.
  *    A no-op is performed if the connection is already in the pending state.
- *  Returns 0 if the IPMI console is sucessfully opened; o/w, returns -1.
+ *  Returns 0 if the IPMI console is successfully opened; o/w, returns -1.
  */
     int rc = 0;
 
@@ -496,7 +496,7 @@ static void fail_ipmi_connect(obj_t *ipmi)
 static int create_ipmi_ctx(obj_t *ipmi)
 {
 /*  Creates a new IPMI context 'ipmi'.
- *  Returns 0 if the context is sucessfully created; o/w, returns -1.
+ *  Returns 0 if the context is successfully created; o/w, returns -1.
  */
     struct ipmiconsole_ipmi_config ipmi_config;
     struct ipmiconsole_protocol_config protocol_config;
