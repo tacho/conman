@@ -228,10 +228,10 @@ static int parse_key(char *dst, const char *src, size_t dstlen)
         }
     }
     else {
-        if (strlcpy(dst, src, dstlen) >= dstlen) {
+        n = strlcpy(dst, src, dstlen);
+        if (n >= dstlen) {
             return(-1);
         }
-        n = strlen(dst);
     }
     assert(n < dstlen);
     return(n);
