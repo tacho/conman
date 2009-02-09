@@ -207,6 +207,9 @@ static int parse_key(char *dst, const char *src, size_t dstlen)
     assert(dst != NULL);
     assert(src != NULL);
 
+    if (dstlen == 0) {
+        return(-1);
+    }
     if ((src[0] == '0') && (src[1] == 'x' || src[1] == 'X')
             && (strspn(src + 2, hexdigits) == strlen(src + 2))) {
         dstend = dst + dstlen - 1;      /* reserve space for terminating NUL */
