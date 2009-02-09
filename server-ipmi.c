@@ -59,7 +59,7 @@ static int create_ipmi_ctx(obj_t *ipmi);
 static void reset_ipmi_delay(obj_t *ipmi);
 
 extern tpoll_t tp_global;               /* defined in server.c */
-static int ipmi_engine_started = 0;
+static int is_ipmi_engine_started = 0;
 
 
 void ipmi_init(int num_consoles)
@@ -71,7 +71,7 @@ void ipmi_init(int num_consoles)
     if (num_consoles <= 0) {
         return;
     }
-    if (ipmi_engine_started) {
+    if (is_ipmi_engine_started) {
         return;
     }
     num_threads = ((num_consoles - 1) / IPMI_ENGINE_CONSOLES_PER_THREAD) + 1;
@@ -85,7 +85,7 @@ void ipmi_init(int num_consoles)
             num_threads, (num_threads == 1) ? "" : "s",
             num_consoles, (num_consoles == 1) ? "" : "s");
     }
-    ipmi_engine_started = 1;
+    is_ipmi_engine_started = 1;
     return;
 }
 
@@ -100,11 +100,11 @@ void ipmi_fini(void)
      */
     int do_sol_session_cleanup = 1;
 
-    if (!ipmi_engine_started) {
+    if (!is_ipmi_engine_started) {
         return;
     }
     ipmiconsole_engine_teardown(do_sol_session_cleanup);
-    ipmi_engine_started = 0;
+    is_ipmi_engine_started = 0;
     return;
 }
 
