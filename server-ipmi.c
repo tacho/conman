@@ -507,7 +507,7 @@ static void fail_ipmi_connect(obj_t *ipmi)
 
     if (!ipmi->aux.ipmi.ctx) {
         log_msg(LOG_INFO,
-            "Unable to create IPMI ctx for console [%s]", ipmi->name);
+            "Unable to create IPMI context for console [%s]", ipmi->name);
     }
     else {
         int e = ipmiconsole_ctx_errnum(ipmi->aux.ipmi.ctx);
