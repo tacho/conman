@@ -1,5 +1,8 @@
 2009-02-10  Chris Dunlap  <cdunlap@llnl.gov>
 
+	* server-ipmi.c (fail_ipmi_connect): Fixed aux.ipmi.delay var in
+	  DPRINTF message.
+
 	* server-ipmi.c (fail_ipmi_connect): Tweaked error message.
 
 	* server-ipmi.c (fail_ipmi_connect): Added assertion for

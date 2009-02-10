@@ -519,7 +519,7 @@ static void fail_ipmi_connect(obj_t *ipmi)
     /*  Set timer for establishing new connection attempt.
      */
     DPRINTF((15, "Reconnect attempt to <%s> via IPMI for [%s] in %ds.\n",
-        ipmi->aux.ipmi.host, ipmi->name, ipmi->aux.ipmi.delay * 1000));
+        ipmi->aux.ipmi.host, ipmi->name, ipmi->aux.ipmi.delay));
 
     assert(ipmi->aux.ipmi.timer == -1);
     assert(ipmi->aux.ipmi.delay >= IPMI_MIN_TIMEOUT);
