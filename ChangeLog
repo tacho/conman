@@ -1,5 +1,7 @@
 2009-02-09  Chris Dunlap  <cdunlap@llnl.gov>
 
+	* server-ipmi.c (create_ipmi_ctx): Relocated function within file.
+
 	* server-ipmi.c (parse_key): Fixed bug if dstlen == 0.
 
 	* server-ipmi.c (parse_key): Removed unnecessary strlen().

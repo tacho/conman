@@ -53,9 +53,9 @@ static int parse_key(char *dst, const char *src, size_t dstlen);
 static void disconnect_ipmi_obj(obj_t *ipmi);
 static int connect_ipmi_obj(obj_t *ipmi);
 static int initiate_ipmi_connect(obj_t *ipmi);
+static int create_ipmi_ctx(obj_t *ipmi);
 static int complete_ipmi_connect(obj_t *ipmi);
 static void fail_ipmi_connect(obj_t *ipmi);
-static int create_ipmi_ctx(obj_t *ipmi);
 static void reset_ipmi_delay(obj_t *ipmi);
 
 extern tpoll_t tp_global;               /* defined in server.c */
@@ -419,6 +419,46 @@ static int initiate_ipmi_connect(obj_t *ipmi)
 }
 
 
+static int create_ipmi_ctx(obj_t *ipmi)
+{
+/*  Creates a new IPMI context 'ipmi'.
+ *  Returns 0 if the context is successfully created; o/w, returns -1.
+ */
+    struct ipmiconsole_ipmi_config ipmi_config;
+    struct ipmiconsole_protocol_config protocol_config;
+    struct ipmiconsole_engine_config engine_config;
+
+    assert(ipmi->aux.ipmi.ctx == NULL);
+
+    ipmi_config.username = ipmi->aux.ipmi.iconf.username;
+    ipmi_config.password = ipmi->aux.ipmi.iconf.password;
+    ipmi_config.k_g = ipmi->aux.ipmi.iconf.kg;
+    ipmi_config.k_g_len = ipmi->aux.ipmi.iconf.kgLen;
+    ipmi_config.privilege_level = -1;
+    ipmi_config.cipher_suite_id = -1;
+
+    protocol_config.session_timeout_len = -1;
+    protocol_config.retransmission_timeout_len = -1;
+    protocol_config.retransmission_backoff_count = -1;
+    protocol_config.keepalive_timeout_len = -1;
+    protocol_config.retransmission_keepalive_timeout_len = -1;
+    protocol_config.acceptable_packet_errors_count = -1;
+    protocol_config.maximum_retransmission_count = -1;
+
+    engine_config.engine_flags = 0;
+    engine_config.behavior_flags = 0;
+    engine_config.debug_flags = 0;
+
+    ipmi->aux.ipmi.ctx = ipmiconsole_ctx_create(
+        ipmi->aux.ipmi.host, &ipmi_config, &protocol_config, &engine_config);
+
+    if (!ipmi->aux.ipmi.ctx) {
+        return(-1);
+    }
+    return(0);
+}
+
+
 static int complete_ipmi_connect(obj_t *ipmi)
 {
 /*  Completes an IPMI connection attempt.
@@ -493,46 +533,6 @@ static void fail_ipmi_connect(obj_t *ipmi)
         ipmi->aux.ipmi.delay = MIN(ipmi->aux.ipmi.delay * 2, IPMI_MAX_TIMEOUT);
     }
     return;
-}
-
-
-static int create_ipmi_ctx(obj_t *ipmi)
-{
-/*  Creates a new IPMI context 'ipmi'.
- *  Returns 0 if the context is successfully created; o/w, returns -1.
- */
-    struct ipmiconsole_ipmi_config ipmi_config;
-    struct ipmiconsole_protocol_config protocol_config;
-    struct ipmiconsole_engine_config engine_config;
-
-    assert(ipmi->aux.ipmi.ctx == NULL);
-
-    ipmi_config.username = ipmi->aux.ipmi.iconf.username;
-    ipmi_config.password = ipmi->aux.ipmi.iconf.password;
-    ipmi_config.k_g = ipmi->aux.ipmi.iconf.kg;
-    ipmi_config.k_g_len = ipmi->aux.ipmi.iconf.kgLen;
-    ipmi_config.privilege_level = -1;
-    ipmi_config.cipher_suite_id = -1;
-
-    protocol_config.session_timeout_len = -1;
-    protocol_config.retransmission_timeout_len = -1;
-    protocol_config.retransmission_backoff_count = -1;
-    protocol_config.keepalive_timeout_len = -1;
-    protocol_config.retransmission_keepalive_timeout_len = -1;
-    protocol_config.acceptable_packet_errors_count = -1;
-    protocol_config.maximum_retransmission_count = -1;
-
-    engine_config.engine_flags = 0;
-    engine_config.behavior_flags = 0;
-    engine_config.debug_flags = 0;
-
-    ipmi->aux.ipmi.ctx = ipmiconsole_ctx_create(
-        ipmi->aux.ipmi.host, &ipmi_config, &protocol_config, &engine_config);
-
-    if (!ipmi->aux.ipmi.ctx) {
-        return(-1);
-    }
-    return(0);
 }
 
 
