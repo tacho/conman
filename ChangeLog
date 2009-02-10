@@ -1,3 +1,7 @@
+2009-02-10  Chris Dunlap  <cdunlap@llnl.gov>
+
+	* server-ipmi.c (create_ipmi_ctx): Moved assertion for aux.ipmi.ctx.
+
 2009-02-09  Chris Dunlap  <cdunlap@llnl.gov>
 
 	* server-ipmi.c (fail_ipmi_connect): Grouped aux.ipmi.delay assertions

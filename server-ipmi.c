@@ -429,8 +429,6 @@ static int create_ipmi_ctx(obj_t *ipmi)
     struct ipmiconsole_protocol_config protocol_config;
     struct ipmiconsole_engine_config engine_config;
 
-    assert(ipmi->aux.ipmi.ctx == NULL);
-
     ipmi_config.username = ipmi->aux.ipmi.iconf.username;
     ipmi_config.password = ipmi->aux.ipmi.iconf.password;
     ipmi_config.k_g = ipmi->aux.ipmi.iconf.kg;
@@ -449,6 +447,8 @@ static int create_ipmi_ctx(obj_t *ipmi)
     engine_config.engine_flags = 0;
     engine_config.behavior_flags = 0;
     engine_config.debug_flags = 0;
+
+    assert(ipmi->aux.ipmi.ctx == NULL);
 
     ipmi->aux.ipmi.ctx = ipmiconsole_ctx_create(
         ipmi->aux.ipmi.host, &ipmi_config, &protocol_config, &engine_config);
