@@ -1,5 +1,9 @@
 2009-02-09  Chris Dunlap  <cdunlap@llnl.gov>
 
+	* server-ipmi.c (fail_ipmi_connect): Grouped aux.ipmi.delay assertions
+	  with code block for setting timer to establish new connection
+	  attempt.
+
 	* server-ipmi.c (create_ipmi_ctx): Tweaked function comment.
 
 	* server-ipmi.c (create_ipmi_ctx): Relocated function within file.
