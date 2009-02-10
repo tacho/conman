@@ -1,5 +1,8 @@
 2009-02-10  Chris Dunlap  <cdunlap@llnl.gov>
 
+	* server-ipmi.c (fail_ipmi_connect): Added assertion for
+	  aux.ipmi.timer.
+
 	* server-ipmi.c (complete_ipmi_connect): Changed status var type to
 	  match updated prototype for ipmiconsole_ctx_status().
 
