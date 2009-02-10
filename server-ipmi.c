@@ -465,7 +465,7 @@ static int complete_ipmi_connect(obj_t *ipmi)
 /*  Completes an IPMI connection attempt.
  *  Returns 0 if the connection is successfully established, or -1 on error.
  */
-    int status;
+    ipmiconsole_ctx_status_t status;
 
     assert(ipmi->aux.ipmi.state == CONMAN_IPMI_PENDING);
 

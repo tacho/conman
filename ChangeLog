@@ -1,5 +1,8 @@
 2009-02-10  Chris Dunlap  <cdunlap@llnl.gov>
 
+	* server-ipmi.c (complete_ipmi_connect): Changed status var type to
+	  match updated prototype for ipmiconsole_ctx_status().
+
 	* server-ipmi.c (create_ipmi_ctx): Moved assertion for aux.ipmi.ctx.
 
 2009-02-09  Chris Dunlap  <cdunlap@llnl.gov>
