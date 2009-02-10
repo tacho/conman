@@ -421,7 +421,8 @@ static int initiate_ipmi_connect(obj_t *ipmi)
 
 static int create_ipmi_ctx(obj_t *ipmi)
 {
-/*  Creates a new IPMI context 'ipmi'.
+/*  Creates a new IPMI context 'ipmi'.  Note that the context cannot be
+ *    submitted to the ipmiconsole engine more than once.
  *  Returns 0 if the context is successfully created; o/w, returns -1.
  */
     struct ipmiconsole_ipmi_config ipmi_config;
