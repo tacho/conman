@@ -435,6 +435,7 @@ static int create_ipmi_ctx(obj_t *ipmi)
     ipmi_config.k_g_len = ipmi->aux.ipmi.iconf.kgLen;
     ipmi_config.privilege_level = -1;
     ipmi_config.cipher_suite_id = -1;
+    ipmi_config.workaround_flags = 0;
 
     protocol_config.session_timeout_len = -1;
     protocol_config.retransmission_timeout_len = -1;

@@ -1,5 +1,8 @@
 2009-02-10  Chris Dunlap  <cdunlap@llnl.gov>
 
+	* server-ipmi.c (create_ipmi_ctx): Fixed bug with missing initializer
+	  for ipmi_config.workaround_flags.
+
 	* server-ipmi.c (fail_ipmi_connect): Fixed aux.ipmi.delay var in
 	  DPRINTF message.
 
