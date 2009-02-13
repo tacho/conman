@@ -1,3 +1,7 @@
+2009-02-12  Chris Dunlap  <cdunlap@llnl.gov>
+
+	* server-conf.c (is_ipmi_dev): Added const prefix var.
+
 2009-02-10  Chris Dunlap  <cdunlap@llnl.gov>
 
 	* server-ipmi.c (create_ipmi_ctx): Fixed bug with missing initializer

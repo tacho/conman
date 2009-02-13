@@ -953,19 +953,19 @@ static int is_telnet_dev(const char *dev, char **host_ref, int *port_ref)
 #ifdef WITH_FREEIPMI
 static int is_ipmi_dev(const char *dev, char **host_ref)
 {
-    char *p;
+    const char *prefix = "ipmi:";
 
     assert(dev != NULL);
 
-    if (strncasecmp(dev, "ipmi:", 5) != 0) {
+    if (strncasecmp(dev, prefix, strlen(prefix)) != 0) {
         return(0);
     }
-    p = (char *) dev + 5;
-    if (p == '\0') {
+    dev += strlen(prefix);
+    if (dev[0] == '\0') {
         return(0);
     }
     if (host_ref) {
-        *host_ref = create_string(p);
+        *host_ref = create_string(dev);
     }
     return(1);
 }
